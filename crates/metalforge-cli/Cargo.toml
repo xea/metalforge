@@ -1,0 +1,10 @@
+[package]
+name = "metalforge-cli"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+metalforge-lib = { path = "../metalforge-lib" }
+metalforge-cpal = { path = "../metalforge-cpal" }
+ratatui = "0.29"
+termion = "4.0"

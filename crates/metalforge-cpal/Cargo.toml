@@ -1,0 +1,13 @@
+[package]
+name = "metalforge-cpal"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+
+[dependencies]
+cpal = "0.15"
+#easyfft = "0.4"
+#qdft = "0.1"
+spectrum-analyzer = "1.5"
+termion = "4.0"
