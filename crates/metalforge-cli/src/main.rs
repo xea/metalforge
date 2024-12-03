@@ -9,7 +9,10 @@ fn main() {
     let song = Song {
         info: SongInfo {
             artist: "TestUser".to_string(),
-            title: "TestSong".to_string()
+            album: "TestAlbum".to_string(),
+            release_year: 2024,
+            title: "TestSong".to_string(),
+            length: 5,
         },
         tracks: vec![
             Track {

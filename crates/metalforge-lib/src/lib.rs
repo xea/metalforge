@@ -1,24 +1,32 @@
 use crate::piano::PitchClass;
 
+#[derive(Debug)]
 pub struct Song {
     pub info: SongInfo,
     pub tracks: Vec<Track>,
 }
 
+#[derive(Debug)]
 pub struct SongInfo {
     pub title: String,
     pub artist: String,
+    pub album: String,
+    pub release_year: u16,
+    pub length: u16,
 }
 
+#[derive(Debug)]
 pub struct Track {
     pub instrument: Instrument
 }
 
+#[derive(Debug)]
 pub enum Instrument {
     Guitar(Vec<guitar::Sound>),
     Piano(Vec<piano::Sound>)
 }
 
+#[derive(Debug)]
 pub struct Chord {
     _chord_type: PitchClass,
     _base_note: Option<PitchClass>,
@@ -26,6 +34,7 @@ pub struct Chord {
     _octave: i8
 }
 
+#[derive(Debug)]
 pub enum ChordMods {
     Major,
     Minor,
@@ -43,11 +52,13 @@ pub enum ChordMods {
 pub mod piano {
     use std::time::Duration;
 
+    #[derive(Debug)]
     pub enum Sound {
         Note(Note),
         Chord(Vec<Note>)
     }
 
+    #[derive(Debug)]
     pub struct Note {
         pub class: PitchClass,
         pub octave: u8,
@@ -56,6 +67,7 @@ pub mod piano {
         pub velocity: u8
     }
 
+    #[derive(Debug)]
     pub enum PitchClass {
         C, CSharp, CFlat,
         D, DSharp, DFlat,
@@ -70,6 +82,7 @@ pub mod piano {
 pub mod guitar {
     use std::time::Duration;
 
+    #[derive(Debug)]
     pub enum Sound {
         Note(Note),
         Chord(Vec<Note>),
@@ -77,6 +90,7 @@ pub mod guitar {
         Slide(Note, Note, Vec<Note>)
     }
 
+    #[derive(Debug)]
     pub struct Note {
         // 0 - High E, 5 - Low E, 6 - Low B
         pub string: u8,

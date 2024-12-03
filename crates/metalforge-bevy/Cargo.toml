@@ -4,4 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy = "0.14.*"
+metalforge-loader = { path = "../metalforge-loader" }
+bevy = "0.15.*"
+bevy_picking = "0.15.0"
+bevy_reflect = "0.15.0"
+bevy_ui = "0.15.0"
+bevy_audio = "0.15.0"
+
+serde_yaml = "0.9.33"
+serde = { version = "1.0.213", features = ["derive"] }

@@ -2,7 +2,6 @@ use std::time::Duration;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{Device, FromSample, InputCallbackInfo, Sample, SampleFormat, StreamError, SupportedStreamConfig};
 use spectrum_analyzer::{samples_fft_to_spectrum, FrequencyLimit, FrequencySpectrum};
-use spectrum_analyzer::error::SpectrumAnalyzerError;
 use spectrum_analyzer::scaling::divide_by_N_sqrt;
 use spectrum_analyzer::windows::hann_window;
 
@@ -12,7 +11,7 @@ pub fn run_demo() {
     let device_in = host.default_input_device().expect("No input device is available");
     let config_in = find_best_config(&device_in);
 
-    print!("{}{}\n", termion::clear::All, termion::cursor::Goto(1, 1));
+    println!("{}{}", termion::clear::All, termion::cursor::Goto(1, 1));
 
     println!("Using audio host: {}", host.id().name());
     println!("Using device: {}", device_in.name().expect("Failed to get name of audio device"));
@@ -58,13 +57,13 @@ fn handle_input<T, U>(input: &[T]) where T: Sample, U: Sample + FromSample<T> {
 }
 
 fn handle_input_f32(input: &[f32]) {
-    for &sample in input.iter() {
+    for &_sample in input.iter() {
         // handle sample
         let hann_window = hann_window(input);
         let r = samples_fft_to_spectrum(&hann_window, 44100, FrequencyLimit::Max(4400.0), Some(&divide_by_N_sqrt));
 
         match r {
-            Ok(freqSpectrum) => process_spectrum(&freqSpectrum),
+            Ok(freq_spectrum) => process_spectrum(&freq_spectrum),
             Err(_) => {}
         }
     }
