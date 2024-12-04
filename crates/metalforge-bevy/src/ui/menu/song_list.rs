@@ -7,10 +7,11 @@ use bevy::prelude::{default, Commands, Res};
 use bevy_ui::widget::Text;
 use bevy_ui::{BackgroundColor, FlexDirection, Node, Outline, Val};
 
-pub fn setup_songlist(
+pub fn setup_song_library(
     mut commands: Commands,
     library: Res<Library>,
 ) {
+    /*
     commands.spawn((Node {
         width: Val::Percent(100.0),
         height: Val::Percent(100.0),
@@ -40,4 +41,5 @@ pub fn setup_songlist(
             });
         }
     });
+     */
 }

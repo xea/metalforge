@@ -2,15 +2,44 @@ use bevy::asset::AssetServer;
 use bevy::color::Color;
 use bevy::color::palettes::basic::GRAY;
 use bevy::prelude::{default, BorderRect, BuildChildren, ChildBuild, Commands, Res, SliceScaleMode, TextColor, TextFont, TextureSlicer};
-use bevy_ui::{AlignItems, BackgroundColor, FlexDirection, JustifyContent, Node, UiRect, Val};
+use bevy_ui::{AlignItems, BackgroundColor, FlexDirection, JustifyContent, Node, Outline, UiRect, Val};
 use bevy_ui::prelude::{Button, ImageNode, Text};
 use bevy_ui::widget::NodeImageMode;
-use crate::ui::menu::{MenuButtonAction, OnMainMenuScreen};
+use crate::ui::menu::{MenuButtonAction, MenuEvent, OnMainMenuScreen};
 
 pub fn setup_main_menu(
     mut commands: Commands,
     asset_server: Res<AssetServer>
 ) {
+    let menu_node = Node {
+        flex_direction: FlexDirection::Column,
+        ..default()
+    };
+
+    let menu_items = vec![
+        ("Play", MenuButtonAction::OpenLibrary),
+        ("Settings", MenuButtonAction::Settings),
+        ("Quit", MenuButtonAction::Quit)
+    ];
+
+    commands.spawn((
+        menu_node,
+    )).with_children(|parent| {
+        for menu_item in menu_items.into_iter() {
+            parent.spawn((
+                Button,
+                Text(menu_item.0.to_string()),
+                MenuEvent::OpenMainMenu
+            ));
+        }
+    });
+}
+
+pub fn setup_main_menu_sliced(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>
+) {
+    /*
     let image = asset_server.load("textures/panel-borders.png");
 
     let slicer = TextureSlicer {
@@ -113,5 +142,6 @@ pub fn setup_main_menu(
                     ));
             });
     });
+     */
 }
 

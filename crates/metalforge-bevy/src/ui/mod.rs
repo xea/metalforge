@@ -7,7 +7,9 @@ pub(crate) mod menu;
 #[derive(Default, Debug, Hash, Eq, PartialEq, Copy, Clone, States)]
 pub enum AppState {
     #[default]
-    Menu,
+    MainMenu,
+    SettingsMenu,
+    SongLibrary,
     Player
 }
 
@@ -18,6 +20,7 @@ pub struct Library {
 
 #[derive(Resource, Debug, Default)]
 pub struct RunState {
+    pub current_menu_idx: usize
 }
 
 impl Library {
