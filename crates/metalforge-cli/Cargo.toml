@@ -7,4 +7,3 @@ edition = "2021"
 metalforge-lib = { path = "../metalforge-lib" }
 metalforge-cpal = { path = "../metalforge-cpal" }
 ratatui = "0.29"
-termion = "4.0"

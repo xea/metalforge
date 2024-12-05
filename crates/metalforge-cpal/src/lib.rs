@@ -11,7 +11,7 @@ pub fn run_demo() {
     let device_in = host.default_input_device().expect("No input device is available");
     let config_in = find_best_config(&device_in);
 
-    println!("{}{}", termion::clear::All, termion::cursor::Goto(1, 1));
+    //println!("{}{}", termion::clear::All, termion::cursor::Goto(1, 1));
 
     println!("Using audio host: {}", host.id().name());
     println!("Using device: {}", device_in.name().expect("Failed to get name of audio device"));
@@ -71,7 +71,7 @@ fn handle_input_f32(input: &[f32]) {
 }
 
 fn process_spectrum(spectrum: &FrequencySpectrum) {
-    print!("{}Max: {:10} {:10}", termion::cursor::Goto(1, 1), spectrum.max().0, spectrum.max_fr().val());
+    // print!("{}Max: {:10} {:10}", termion::cursor::Goto(1, 1), spectrum.max().0, spectrum.max_fr().val());
 }
 
 fn find_best_config(device: &Device) -> SupportedStreamConfig {

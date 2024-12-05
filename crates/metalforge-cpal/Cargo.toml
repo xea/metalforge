@@ -10,4 +10,5 @@ cpal = "0.15"
 #easyfft = "0.4"
 #qdft = "0.1"
 spectrum-analyzer = "1.5"
-termion = "4.0"
+#termion = "4.0" #not supported on windows
+crossterm = "0.28"

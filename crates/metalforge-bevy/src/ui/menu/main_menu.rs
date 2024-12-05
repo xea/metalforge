@@ -5,7 +5,7 @@ use bevy::prelude::{default, BorderRect, BuildChildren, ChildBuild, Commands, Re
 use bevy_ui::{AlignItems, BackgroundColor, FlexDirection, JustifyContent, Node, Outline, UiRect, Val};
 use bevy_ui::prelude::{Button, ImageNode, Text};
 use bevy_ui::widget::NodeImageMode;
-use crate::ui::menu::{MenuButtonAction, MenuEvent, OnMainMenuScreen};
+use crate::ui::menu::{MenuButtonAction, MenuEvent, OnMainMenu};
 
 pub fn setup_main_menu(
     mut commands: Commands,
@@ -39,7 +39,6 @@ pub fn setup_main_menu_sliced(
     mut commands: Commands,
     asset_server: Res<AssetServer>
 ) {
-    /*
     let image = asset_server.load("textures/panel-borders.png");
 
     let slicer = TextureSlicer {
@@ -72,7 +71,7 @@ pub fn setup_main_menu_sliced(
         align_items: AlignItems::Center,
         justify_content: JustifyContent::Center,
         ..default()
-    }, OnMainMenuScreen)).with_children(|parent| {
+    }, OnMainMenu)).with_children(|parent| {
         // Create main menu title
         parent.spawn((
             Node {
@@ -101,7 +100,7 @@ pub fn setup_main_menu_sliced(
                         ..default()
                     },
                     button_node.clone(),
-                    MenuButtonAction::ChooseSong
+                    MenuButtonAction::PlaySong
                 ))
                     .with_child((
                         Text::new("Play song"),
@@ -142,6 +141,5 @@ pub fn setup_main_menu_sliced(
                     ));
             });
     });
-     */
 }
 
