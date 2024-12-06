@@ -3,7 +3,7 @@ use metalforge_lib::SongInfo;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-const EXT_PSARC: &'static str = "psarc";
+const EXT_PSARC: &str = "psarc";
 
 #[derive(Debug)]
 pub struct SongRef {

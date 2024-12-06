@@ -4,7 +4,7 @@ use metalforge_loader::explorer::SongRef;
 pub(crate) mod player;
 pub(crate) mod menu;
 
-#[derive(Default, Debug, Hash, Eq, PartialEq, Copy, Clone, States)]
+#[derive(Debug, Default, Hash, Eq, PartialEq, Copy, Clone, States)]
 pub enum AppState {
     #[default]
     MainMenu,
@@ -20,7 +20,6 @@ pub struct Library {
 
 #[derive(Resource, Debug, Default)]
 pub struct RunState {
-    pub current_menu_idx: usize
 }
 
 impl Library {

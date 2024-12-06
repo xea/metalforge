@@ -6,7 +6,7 @@ use rockysmithereens_parser::SongFile;
 pub fn load_psarc<P: AsRef<Path>>(path: P) -> std::io::Result<SongFile> {
     File::open(path)
         .and_then(|mut file| read_file(&mut file))
-        .and_then(|bytes| parse_songfile(bytes))
+        .and_then(parse_songfile)
 }
 
 fn read_file(file: &mut File) -> std::io::Result<Vec<u8>> {
@@ -16,7 +16,7 @@ fn read_file(file: &mut File) -> std::io::Result<Vec<u8>> {
 }
 
 fn parse_songfile(data: Vec<u8>) -> std::io::Result<SongFile> {
-    SongFile::parse(&*data)
+    SongFile::parse(&data)
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
 }
 

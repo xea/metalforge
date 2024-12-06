@@ -69,7 +69,7 @@ pub struct Note2d {
     pub kind: String
 }
 
-fn scroll_nodes(mut query: Query<&mut Transform, With<Note2d>>, time: Res<Time>) {
+fn scroll_nodes(mut query: Query<&mut Transform, With<Note2d>>, _time: Res<Time>) {
     for mut transform in query.iter_mut() {
         transform.translation.x -= 0.3;
     }
