@@ -1,8 +1,10 @@
-mod song_library;
+mod arrangements;
 mod main_menu;
 mod settings;
+mod song_library;
 
 use crate::ui::menu::main_menu::{setup_main_menu, OnMainMenu};
+use crate::ui::menu::settings::{setup_settings, OnSettingsMenu};
 use crate::ui::menu::song_library::{setup_song_library, OnSongLibrary};
 use crate::ui::AppState;
 use bevy::app::{App, AppExit, Update};
@@ -13,7 +15,7 @@ use bevy::prelude::{default, in_state, Changed, Commands, Component, Entity, Eve
 use bevy::text::TextColor;
 use bevy_ui::prelude::{Button, Text};
 use bevy_ui::{FlexDirection, Interaction, Node, Val};
-use crate::ui::menu::settings::{setup_settings, OnSettingsMenu};
+use crate::ui::menu::arrangements::{setup_arrangement, OnArrangements};
 
 pub const NORMAL_COLOR: Color = Color::srgb(1., 1., 1.);
 pub const HOVERED_COLOR: Color = Color::srgb(0.6, 0.6, 1.);
@@ -30,11 +32,15 @@ pub fn menu_plugin(app: &mut App) {
         .add_systems(OnExit(AppState::SongLibrary), despawn_screen::<OnSongLibrary>)
         .add_systems(OnEnter(AppState::SettingsMenu), setup_settings)
         .add_systems(OnExit(AppState::SettingsMenu), despawn_screen::<OnSettingsMenu>)
+        .add_systems(OnEnter(AppState::Arrangements), setup_arrangement)
+        .add_systems(OnExit(AppState::Arrangements), despawn_screen::<OnArrangements>)
         .add_systems(Update, menu_handlers.run_if(in_state(AppState::MainMenu)))
         .add_systems(Update, menu_handlers.run_if(in_state(AppState::SettingsMenu)))
         .add_systems(Update, menu_handlers.run_if(in_state(AppState::SongLibrary)))
+        .add_systems(Update, menu_handlers.run_if(in_state(AppState::Arrangements)))
     ;
 }
+
 
 #[derive(Event, Copy, Clone, Default)]
 enum MenuEvent {
@@ -44,6 +50,7 @@ enum MenuEvent {
     PrevMenuItem,
     NextMenuItem,
     FocusMenuItem(usize),
+    ChooseSong(usize),
     Play,
     Quit,
     Todo,
@@ -58,16 +65,51 @@ pub(crate) struct MenuState {
     previous_idx: usize,
     selected_idx: usize,
     menu_len: usize,
-    current_action: MenuEvent
+    current_action: MenuEvent,
+    selected_song_idx: usize,
+    menu_stack: Vec<(usize, MenuEvent)>
+}
+
+impl MenuState {
+    pub fn idx_changed(&self) -> bool {
+        self.selected_idx != self.previous_idx
+    }
+
+    pub fn update_selection(&mut self, new_idx: usize, new_action: MenuEvent) {
+        self.previous_idx = new_idx;
+        self.current_action = new_action;
+    }
+
+    pub fn select_idx(&mut self, idx: usize) {
+        self.selected_idx = idx.max(0).min(self.menu_len - 1);
+    }
+    
+    pub fn select_next(&mut self) {
+        self.select_idx(self.selected_idx + 1);
+    }
+
+    pub fn select_prev(&mut self) {
+        self.select_idx(self.selected_idx.max(1) - 1);
+    }
+
+    pub fn push(&mut self) {
+        self.menu_stack.push((self.selected_idx, self.current_action));
+        self.select_idx(0);
+    }
+
+    pub fn pop(&mut self) {
+        let (new_idx, new_action) = self.menu_stack.pop().unwrap_or((0, MenuEvent::Ignore));
+        self.select_idx(new_idx);
+        self.current_action = new_action;
+    }
 }
 
 fn highlight_menu(mut query: Query<(&MenuEvent, &mut TextColor, &MenuIdx)>, mut menu_state: ResMut<MenuState>) {
-    if menu_state.selected_idx != menu_state.previous_idx {
+    if menu_state.idx_changed() {
         for (event, mut color, menu_idx) in query.iter_mut() {
             if menu_idx.0 == menu_state.selected_idx {
                 color.0 = HOVERED_COLOR;
-                menu_state.previous_idx = menu_idx.0;
-                menu_state.current_action = *event;
+                menu_state.update_selection(menu_idx.0, *event);
             } else {
                 color.0 = NORMAL_COLOR;
             }
@@ -96,24 +138,40 @@ fn handle_menu_keys(
     input: Res<ButtonInput<KeyCode>>,
     current_app_state: Res<State<AppState>>,
     mut events: EventWriter<MenuEvent>,
-    menu_state: ResMut<MenuState>,
+    mut menu_state: ResMut<MenuState>,
 ) {
     if input.just_pressed(KeyCode::Escape) {
         match current_app_state.get() {
             AppState::MainMenu => {
+                menu_state.pop();
                 events.send(MenuEvent::Quit);
             }
             AppState::SettingsMenu => {
+                menu_state.pop();
                 events.send(MenuEvent::OpenMainMenu);
             }
             AppState::SongLibrary => {
+                menu_state.pop();
                 events.send(MenuEvent::OpenMainMenu);
             }
             AppState::Player => {
                 unimplemented!()
             }
+            AppState::Arrangements => {
+                menu_state.pop();
+                events.send(MenuEvent::Play);
+            }
         }
     } else if input.just_pressed(KeyCode::Enter) {
+        match &menu_state.current_action {
+            MenuEvent::OpenMainMenu
+            | MenuEvent::OpenSettingsMenu
+            | MenuEvent::ChooseSong(_)
+            | MenuEvent::Play => {
+                menu_state.push();
+            }
+            _ => {}
+        }
         events.send(menu_state.current_action);
     } else if input.just_pressed(KeyCode::ArrowDown) {
         events.send(MenuEvent::NextMenuItem);
@@ -137,19 +195,17 @@ fn handle_menu_events(
                 app_state.set(AppState::SettingsMenu);
             }
             MenuEvent::PrevMenuItem => {
-                if menu_state.selected_idx > 0 {
-                    menu_state.selected_idx -= 1;
-                }
+                menu_state.select_prev();
             }
             MenuEvent::NextMenuItem => {
-                if menu_state.menu_len > 0 && menu_state.selected_idx < menu_state.menu_len - 1 {
-                    menu_state.selected_idx += 1;
-                }
+                menu_state.select_next();
             }
             MenuEvent::FocusMenuItem(idx) => {
-                if menu_state.menu_len > *idx {
-                    menu_state.selected_idx = *idx;
-                }
+                menu_state.select_idx(*idx);
+            }
+            MenuEvent::ChooseSong(song_idx) => {
+                menu_state.selected_song_idx = *song_idx;
+                app_state.set(AppState::Arrangements);
             }
             MenuEvent::Play => {
                 menu_state.selected_idx = 0;
@@ -167,6 +223,14 @@ fn handle_menu_events(
     }
 }
 
+fn switch_state_fwd(mut current_state: ResMut<NextState<AppState>>, new_state: AppState, mut menu_state: ResMut<MenuState>) {
+    menu_state.push();
+}
+
+fn switch_state_back(mut current_state: ResMut<NextState<AppState>>, new_state: AppState, mut menu_state: ResMut<MenuState>) {
+    menu_state.push();
+}
+
 fn despawn_screen<T: Component>(mut commands: Commands, query: Query<Entity, With<T>>) {
     for entity in query.iter() {
         commands.entity(entity).despawn_recursive();
@@ -181,17 +245,22 @@ pub struct MenuItem {
 
 impl From<(usize, &str, MenuEvent)> for MenuItem {
     fn from(value: (usize, &str, MenuEvent)) -> Self {
+        MenuItem::from((value.0, value.1.to_string(), value.2))
+    }
+}
+
+impl From<(usize, String, MenuEvent)> for MenuItem {
+    fn from(value: (usize, String, MenuEvent)) -> Self {
         MenuItem {
             idx: MenuIdx(value.0),
-            title: value.1.to_string(),
+            title: value.1,
             event: value.2
         }
     }
 }
 
 pub(crate) fn setup_menu<T: Component>(menu_items: Vec<MenuItem>, tag: T, mut commands: Commands, mut state: ResMut<MenuState>) {
-    state.selected_idx = 0;
-    state.current_action = menu_items.get(0).map(|item| item.event).unwrap_or(MenuEvent::Ignore);
+    state.current_action = menu_items.get(state.selected_idx).map(|item| item.event).unwrap_or(MenuEvent::Ignore);
     state.menu_len = menu_items.len();
 
     // Container defining the overall outline of the menu, including tagging required for screen de-spawning
@@ -217,10 +286,16 @@ pub(crate) fn setup_menu<T: Component>(menu_items: Vec<MenuItem>, tag: T, mut co
                 TextColor(text_color),
                 //BackgroundColor(Color::from(RED)),
                 Node {
-                    width: Val::Percent(50.0),
+                    width: Val::Percent(70.0),
                     ..default()
                 }
             ));
         }
     });
+}
+
+
+#[cfg(test)]
+mod tests {
+
 }

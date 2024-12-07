@@ -1,7 +1,9 @@
 use std::fs::File;
 use std::io::Read;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use rockysmithereens_parser::SongFile;
+use crate::explorer::SongRef;
+use crate::SmithereenLoader;
 
 pub fn load_psarc<P: AsRef<Path>>(path: P) -> std::io::Result<SongFile> {
     File::open(path)
@@ -18,6 +20,18 @@ fn read_file(file: &mut File) -> std::io::Result<Vec<u8>> {
 fn parse_songfile(data: Vec<u8>) -> std::io::Result<SongFile> {
     SongFile::parse(&data)
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
+}
+
+pub fn create_psarc_ref(path: PathBuf) -> std::io::Result<Vec<SongRef>> {
+    let songs = SmithereenLoader::load_file(&path)
+        .map(|songs| {
+            songs.into_iter().map(|song| SongRef {
+                path: path.clone(),
+                song_info: song.info
+            }).collect()
+        });
+
+    songs
 }
 
 #[cfg(test)]

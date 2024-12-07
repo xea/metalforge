@@ -2,6 +2,7 @@ use crate::SmithereenLoader;
 use metalforge_lib::SongInfo;
 use std::fs;
 use std::path::{Path, PathBuf};
+use crate::smither::create_psarc_ref;
 
 const EXT_PSARC: &str = "psarc";
 
@@ -43,18 +44,6 @@ pub fn find_songs<P: AsRef<Path>>(path: P) -> std::io::Result<Vec<SongRef>> {
     }
 
     Ok(songs)
-}
-
-fn create_psarc_ref(path: PathBuf) -> std::io::Result<Vec<SongRef>> {
-    let songs = SmithereenLoader::load_file(&path)
-        .map(|songs| {
-            songs.into_iter().map(|song| SongRef {
-                path: path.clone(),
-                song_info: song.info
-            }).collect()
-        });
-
-    songs
 }
 
 #[cfg(test)]

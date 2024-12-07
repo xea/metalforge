@@ -1,13 +1,7 @@
-//use crate::ui::menu::OnSongLibrary;
-use crate::ui::{Library, RunState};
-use bevy::color::palettes::css::{NAVY, RED};
-use bevy::color::Color;
-use bevy::hierarchy::{BuildChildren, ChildBuild};
-use bevy::prelude::{default, Commands, Component, Res, ResMut};
-use bevy_ui::widget::Text;
-use bevy_ui::{BackgroundColor, FlexDirection, Node, Outline, Val};
 use crate::ui::menu::{setup_menu, MenuEvent, MenuItem, MenuState};
-use crate::ui::menu::main_menu::OnMainMenu;
+//use crate::ui::menu::OnSongLibrary;
+use crate::ui::Library;
+use bevy::prelude::{Commands, Component, Res, ResMut};
 
 #[derive(Component)]
 pub struct OnSongLibrary;
@@ -17,10 +11,13 @@ pub fn setup_song_library(
     library: Res<Library>,
     state: ResMut<MenuState>
 ) {
-    let menu_items = vec![
-        MenuItem::from((0, "BackToMain", MenuEvent::OpenMainMenu)),
-        MenuItem::from((1, "Quit", MenuEvent::Quit)),
-    ];
+    let mut menu_items = vec![];
+
+    for (idx, song) in library.songs.iter().enumerate() {
+        let title = format!("{} by {} [{}]", song.song_info.title, song.song_info.artist, song.path.to_str().unwrap_or("[Unknown]"));
+        let menu_item = MenuItem::from((idx, title, MenuEvent::ChooseSong(idx)));
+        menu_items.push(menu_item);
+    }
 
     setup_menu(menu_items, OnSongLibrary, commands, state);
     /*

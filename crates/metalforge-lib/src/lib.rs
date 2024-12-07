@@ -6,7 +6,7 @@ pub struct Song {
     pub tracks: Vec<Track>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct SongInfo {
     pub title: String,
     pub artist: String,

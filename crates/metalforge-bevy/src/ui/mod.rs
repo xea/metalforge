@@ -10,6 +10,7 @@ pub enum AppState {
     MainMenu,
     SettingsMenu,
     SongLibrary,
+    Arrangements,
     Player
 }
 
