@@ -81,7 +81,7 @@ impl MenuState {
     }
 
     pub fn select_idx(&mut self, idx: usize) {
-        self.selected_idx = idx.max(0).min(self.menu_len - 1);
+        self.selected_idx = idx.max(0).min(self.menu_len.max(1) - 1);
     }
     
     pub fn select_next(&mut self) {
@@ -259,7 +259,7 @@ impl From<(usize, String, MenuEvent)> for MenuItem {
     }
 }
 
-pub(crate) fn setup_menu<T: Component>(menu_items: Vec<MenuItem>, tag: T, mut commands: Commands, mut state: ResMut<MenuState>) {
+pub(crate) fn setup_menu<T: Component>(menu_title: &str, menu_items: Vec<MenuItem>, tag: T, mut commands: Commands, mut state: ResMut<MenuState>) {
     state.current_action = menu_items.get(state.selected_idx).map(|item| item.event).unwrap_or(MenuEvent::Ignore);
     state.menu_len = menu_items.len();
 
@@ -270,6 +270,9 @@ pub(crate) fn setup_menu<T: Component>(menu_items: Vec<MenuItem>, tag: T, mut co
         flex_direction: FlexDirection::Column,
         ..default()
     })).with_children(|parent| {
+        // Draw title
+        parent.spawn(Text(menu_title.to_string()));
+
         // Create a button for each menu item, highlighting the first element in the list
         for menu_item in menu_items.into_iter() {
             let text_color = if menu_item.idx.0 == state.selected_idx {
@@ -297,5 +300,22 @@ pub(crate) fn setup_menu<T: Component>(menu_items: Vec<MenuItem>, tag: T, mut co
 
 #[cfg(test)]
 mod tests {
+    use bevy::app::Update;
+    use bevy::prelude::{in_state, App, IntoSystemConfigs};
+    use crate::ui::AppState;
+    use crate::ui::menu::{handle_menu_keys, MenuEvent, MenuState};
 
+    #[test]
+    fn test_test() {
+        let mut app = App::new();
+
+        app
+            .insert_resource(MenuState::default())
+            .add_event::<MenuEvent>()
+            .add_systems(Update, handle_menu_keys.run_if(in_state(AppState::MainMenu)));
+
+        app.update();
+
+        unimplemented!()
+    }
 }

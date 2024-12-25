@@ -1,15 +1,15 @@
-use crate::SmithereenLoader;
-use metalforge_lib::SongInfo;
+// use crate::smither::{create_psarc_refs, load_psarc};
+// use metalforge_lib::{Song, SongHeader};
 use std::fs;
 use std::path::{Path, PathBuf};
-use crate::smither::create_psarc_ref;
 
 const EXT_PSARC: &str = "psarc";
 
+/*
 #[derive(Debug)]
 pub struct SongRef {
     pub path: PathBuf,
-    pub song_info: SongInfo
+    pub song_info: SongHeader
 }
 
 pub fn find_songs<P: AsRef<Path>>(path: P) -> std::io::Result<Vec<SongRef>> {
@@ -24,7 +24,7 @@ pub fn find_songs<P: AsRef<Path>>(path: P) -> std::io::Result<Vec<SongRef>> {
                 match extension.to_str() {
                     Some(EXT_PSARC) => {
                         // Load
-                        if let Ok(mut read_songs) = create_psarc_ref(path) {
+                        if let Ok(mut read_songs) = create_psarc_refs(path) {
                             songs.append(&mut read_songs);
                         } else {
                             // Error loading manifest
@@ -55,3 +55,4 @@ mod tests {
         let songs = find_songs("../../../examples");
     }
 }
+ */

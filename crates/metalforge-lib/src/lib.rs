@@ -1,13 +1,17 @@
+pub mod library;
+pub mod song;
+
+/*
 use crate::piano::PitchClass;
 
 #[derive(Debug)]
 pub struct Song {
-    pub info: SongInfo,
-    pub tracks: Vec<Track>,
+    pub info: SongHeader,
+    pub arrangements: Vec<Arrangement>,
 }
 
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct SongInfo {
+pub struct SongHeader {
     pub title: String,
     pub artist: String,
     pub album: String,
@@ -16,7 +20,7 @@ pub struct SongInfo {
 }
 
 #[derive(Debug)]
-pub struct Track {
+pub struct Arrangement {
     pub instrument: Instrument
 }
 
@@ -101,4 +105,4 @@ pub mod guitar {
         pub bend: i8
     }
 }
-
+ */

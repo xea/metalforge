@@ -1,15 +1,15 @@
 mod config;
 mod ui;
 
-use std::env::current_dir;
-use std::path::Path;
 use crate::config::{AppConfig, WindowType};
-use crate::ui::{AppState, Library, RunState};
+use crate::ui::{AppState, LibraryView};
 use bevy::prelude::{App, AppExtStates, Camera2d, Commands, Startup};
-use bevy::DefaultPlugins;
 use bevy::sprite::Wireframe2dPlugin;
 use bevy::winit::WinitSettings;
-use metalforge_loader::explorer::find_songs;
+use bevy::DefaultPlugins;
+use std::env::current_dir;
+use std::path::Path;
+use metalforge_loader::scan_song_directory;
 
 fn main() -> std::io::Result<()> {
     // Load configuration
@@ -50,7 +50,6 @@ fn init_app(cfg: &AppConfig) -> App {
 
     // State initialisation has to come after DefaultPlugins
     app.init_state::<AppState>();
-    app.insert_resource(RunState::default());
     app.add_systems(Startup, setup);
     app.add_plugins((
         ui::menu::menu_plugin,
@@ -75,7 +74,8 @@ fn setup(mut commands: Commands) {
     commands.spawn(Camera2d);
 }
 
-fn build_library<P: AsRef<Path>>(path: P) -> std::io::Result<Library> {
-    find_songs(path)
-        .map(Library::new)
+fn build_library<P: AsRef<Path>>(path: P) -> std::io::Result<LibraryView> {
+    let song_library = scan_song_directory(path)?;
+
+    Ok(LibraryView::from(song_library))
 }

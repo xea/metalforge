@@ -1,21 +1,22 @@
 use metalforge_cpal::run_demo;
-use metalforge_lib::{guitar, piano, Instrument, Song, SongInfo, Track};
-use metalforge_lib::guitar::Sound;
-use metalforge_lib::guitar::Sound::{Chord, Note};
+// use metalforge_lib::{guitar, piano, Instrument, Song, SongHeader, Arrangement};
+// use metalforge_lib::guitar::Sound;
+// use metalforge_lib::guitar::Sound::{Chord, Note};
 
 fn main() {
     run_demo();
 
+    /*
     let song = Song {
-        info: SongInfo {
+        info: SongHeader {
             artist: "TestUser".to_string(),
             album: "TestAlbum".to_string(),
             release_year: 2024,
             title: "TestSong".to_string(),
             length: 5,
         },
-        tracks: vec![
-            Track {
+        arrangements: vec![
+            Arrangement {
                 instrument: Instrument::Guitar(vec![
                     Note(guitar::Note {
                         string: 5,
@@ -55,10 +56,12 @@ fn main() {
     };
 
     render_sheet(&song);
+     */
 }
 
+/*
 fn render_sheet(song: &Song) {
-    for track in &song.tracks {
+    for track in &song.arrangements {
         match &track.instrument {
             Instrument::Guitar(sounds) => render_guitar(sounds),
             Instrument::Piano(sounds) => render_piano(sounds)
@@ -92,3 +95,4 @@ fn render_guitar(sounds: &Vec<guitar::Sound>) {
 fn render_piano(_sounds: &Vec<piano::Sound>) {
 
 }
+ */

@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+metalforge-lib = { path = "../metalforge-lib" }
 metalforge-loader = { path = "../metalforge-loader" }
 bevy = "0.15.*"
 bevy_picking = "0.15.0"

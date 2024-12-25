@@ -11,5 +11,5 @@ pub fn setup_main_menu(commands: Commands, state: ResMut<MenuState>) {
         MenuItem::from((2, "Quit", MenuEvent::Quit))
     ];
 
-    setup_menu(menu_items, OnMainMenu, commands, state);
+    setup_menu("Main menu", menu_items, OnMainMenu, commands, state);
 }

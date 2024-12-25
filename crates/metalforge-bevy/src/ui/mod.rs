@@ -1,5 +1,7 @@
 use bevy::prelude::{Resource, States};
-use metalforge_loader::explorer::SongRef;
+use metalforge_lib::library::SongLibrary;
+use metalforge_lib::song::Song;
+// use metalforge_loader::explorer::SongRef;
 
 pub(crate) mod player;
 pub(crate) mod menu;
@@ -15,16 +17,28 @@ pub enum AppState {
 }
 
 #[derive(Resource, Debug)]
-pub struct Library {
-    songs: Vec<SongRef>
+pub struct LibraryView {
+    song_library: SongLibrary
 }
 
-#[derive(Resource, Debug, Default)]
-pub struct RunState {
-}
+impl LibraryView {
+    pub(crate) fn new(song_library: SongLibrary) -> Self {
+        Self {
+            song_library,
+        }
+    }
 
-impl Library {
-    pub fn new(songs: Vec<SongRef>) -> Self {
-        Self { songs }
+    pub fn iter(&self) -> impl Iterator<Item = &Song> {
+        self.song_library.iter()
     }
 }
+
+impl From<SongLibrary> for LibraryView {
+    fn from(song_library: SongLibrary) -> Self {
+        Self {
+            song_library
+        }
+    }
+}
+
+

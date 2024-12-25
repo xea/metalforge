@@ -6,4 +6,5 @@ edition = "2021"
 [dependencies]
 metalforge-lib = { path = "../metalforge-lib" }
 rockysmithereens_parser = { git = "https://github.com/tversteeg/rockysmithereens.git", features = [ "profile-with-tracing" ] }
-serde_json = "1"
+hashbrown = "0.15"
+url = "2.5.4"

@@ -13,6 +13,6 @@ pub fn setup_settings(
         MenuItem::from((1, "Debug settings", MenuEvent::Todo)),
     ];
 
-    setup_menu(menu_items, OnSettingsMenu, commands, menu_state)
+    setup_menu("Settings", menu_items, OnSettingsMenu, commands, menu_state)
 }
 
