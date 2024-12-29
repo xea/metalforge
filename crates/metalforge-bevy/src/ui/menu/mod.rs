@@ -223,13 +223,13 @@ fn handle_menu_events(
     }
 }
 
-fn switch_state_fwd(mut current_state: ResMut<NextState<AppState>>, new_state: AppState, mut menu_state: ResMut<MenuState>) {
-    menu_state.push();
-}
-
-fn switch_state_back(mut current_state: ResMut<NextState<AppState>>, new_state: AppState, mut menu_state: ResMut<MenuState>) {
-    menu_state.push();
-}
+// fn switch_state_fwd(mut current_state: ResMut<NextState<AppState>>, new_state: AppState, mut menu_state: ResMut<MenuState>) {
+//     menu_state.push();
+// }
+//
+// fn switch_state_back(mut current_state: ResMut<NextState<AppState>>, new_state: AppState, mut menu_state: ResMut<MenuState>) {
+//     menu_state.push();
+// }
 
 fn despawn_screen<T: Component>(mut commands: Commands, query: Query<Entity, With<T>>) {
     for entity in query.iter() {
@@ -301,21 +301,122 @@ pub(crate) fn setup_menu<T: Component>(menu_title: &str, menu_items: Vec<MenuIte
 #[cfg(test)]
 mod tests {
     use bevy::app::Update;
-    use bevy::prelude::{in_state, App, IntoSystemConfigs};
+    use bevy::input::ButtonInput;
+    use bevy::prelude::{in_state, App, AppExtStates, IntoSystemConfigs, KeyCode};
+    use bevy::state::app::StatesPlugin;
     use crate::ui::AppState;
-    use crate::ui::menu::{handle_menu_keys, MenuEvent, MenuState};
+    use crate::ui::menu::{handle_menu_events, handle_menu_keys, MenuEvent, MenuState};
 
     #[test]
-    fn test_test() {
+    fn default_menu_idx_is_zero() {
         let mut app = App::new();
 
-        app
-            .insert_resource(MenuState::default())
+        app.add_event::<MenuEvent>()
+            .insert_resource(MenuState::default());
+
+        assert_eq!(0, app.world().resource::<MenuState>().selected_idx);
+    }
+
+    fn test_handler() {
+    }
+
+    #[test]
+    fn arrow_key_down_increments_the_currently_selected_menu_item_until_last_item() {
+        let mut app = App::new();
+
+        let mut menu_state = MenuState::default();
+        menu_state.menu_len = 3;
+
+        app.add_plugins(StatesPlugin)
             .add_event::<MenuEvent>()
-            .add_systems(Update, handle_menu_keys.run_if(in_state(AppState::MainMenu)));
+            .add_systems(Update, (test_handler, handle_menu_keys, handle_menu_events))
+            .init_state::<AppState>()
+            .insert_resource(menu_state);
+
+        let mut input = ButtonInput::<KeyCode>::default();
+
+        input.press(KeyCode::ArrowDown);
+        app.insert_resource(input);
+
+        // First update, expect an increment
+        app.update();
+
+        assert_eq!(1, app.world().resource::<MenuState>().selected_idx);
+
+        // Second update, expect an increment to the third, last item
+        app.update();
+
+        assert_eq!(2, app.world().resource::<MenuState>().selected_idx);
+
+        // Final update, no increment is expected as we're already on the last item
+        app.update();
+
+        assert_eq!(2, app.world().resource::<MenuState>().selected_idx);
+
+        // Clear key
+        app.world_mut()
+            .resource_mut::<ButtonInput<KeyCode>>()
+            .clear();
 
         app.update();
 
-        unimplemented!()
+        assert_eq!(2, app.world().resource::<MenuState>().selected_idx);
+    }
+
+    #[test]
+    fn arrow_key_up_decrements_the_current_menu_item_until_first_item() {
+        let mut app = App::new();
+
+        let mut menu_state = MenuState::default();
+        menu_state.menu_len = 3;
+
+        app.add_plugins(StatesPlugin)
+            .add_event::<MenuEvent>()
+            .add_systems(Update, (test_handler, handle_menu_keys, handle_menu_events))
+            .init_state::<AppState>()
+            .insert_resource(menu_state);
+
+        let mut input_down = ButtonInput::<KeyCode>::default();
+        let mut input_up = ButtonInput::<KeyCode>::default();
+
+        input_down.press(KeyCode::ArrowDown);
+        input_up.press(KeyCode::ArrowUp);
+
+        // Go down to the last item
+        app.insert_resource(input_down);
+
+        app.update();
+        app.update();
+
+        // Clear arrow down and change to arrow up
+        app.world_mut()
+            .resource_mut::<ButtonInput<KeyCode>>()
+            .clear();
+
+        app.update();
+
+        // Iterate upwards
+        app.insert_resource(input_up);
+
+        app.update();
+        assert_eq!(1, app.world().resource::<MenuState>().selected_idx);
+
+        // Move to top element
+        app.update();
+        assert_eq!(0, app.world().resource::<MenuState>().selected_idx);
+
+        // Keep moving up but expect no change as we're already at the top
+        app.update();
+
+        assert_eq!(0, app.world().resource::<MenuState>().selected_idx);
+
+        // Clear key
+        app.world_mut()
+            .resource_mut::<ButtonInput<KeyCode>>()
+            .clear();
+
+        app.update();
+
+        assert_eq!(0, app.world().resource::<MenuState>().selected_idx);
     }
 }
