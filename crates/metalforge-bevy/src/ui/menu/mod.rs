@@ -51,6 +51,7 @@ enum MenuEvent {
     NextMenuItem,
     FocusMenuItem(usize),
     ChooseSong(usize),
+    ChooseArrangement(usize),
     Play,
     Quit,
     Todo,
@@ -67,6 +68,7 @@ pub(crate) struct MenuState {
     menu_len: usize,
     current_action: MenuEvent,
     selected_song_idx: usize,
+    selected_arrangement_idx: usize,
     menu_stack: Vec<(usize, MenuEvent)>
 }
 
@@ -206,6 +208,10 @@ fn handle_menu_events(
             MenuEvent::ChooseSong(song_idx) => {
                 menu_state.selected_song_idx = *song_idx;
                 app_state.set(AppState::Arrangements);
+            }
+            MenuEvent::ChooseArrangement(arrangement_idx) => {
+                menu_state.selected_arrangement_idx = *arrangement_idx;
+                app_state.set(AppState::Player);
             }
             MenuEvent::Play => {
                 menu_state.selected_idx = 0;

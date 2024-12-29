@@ -12,7 +12,7 @@ pub fn setup_arrangement(mut commands: Commands, mut menu_state: ResMut<MenuStat
 
     if let Some(song) = library.iter().nth(song_idx) {
         for (idx, arrangement) in song.header.arrangements.iter().enumerate() {
-            let menu_item = MenuItem::from((idx, arrangement.name.as_str(), MenuEvent::ChooseSong(idx)));
+            let menu_item = MenuItem::from((idx, arrangement.name.as_str(), MenuEvent::ChooseArrangement(idx)));
             menu_items.push(menu_item);
         }
     }
