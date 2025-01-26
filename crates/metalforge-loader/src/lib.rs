@@ -9,8 +9,15 @@ use metalforge_lib::song::Song;
 use crate::loader::load_library;
 use crate::smither::load_song_from_psarc;
 
+/// Metalforge song file type extension
+const EXT_MFSONG: &str = "mfsong";
+/// Metalforge song library file type extension
+const EXT_MFLIB: &str = "mflib";
+/// PSARC file format extension
 const EXT_PSARC: &str = "psarc";
+/// Song library descriptor file name
 const LIBRARY_DESCRIPTOR: &str = "library.yaml";
+/// Song descriptor file name
 const SONG_DESCRIPTOR: &str = "song.yaml";
 
 /// Attempts to scan a directory on the file system for song files and collect the found songs into
