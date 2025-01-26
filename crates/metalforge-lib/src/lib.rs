@@ -1,6 +1,6 @@
 pub mod library;
 pub mod song;
-
+pub mod guitar;
 /*
 use crate::piano::PitchClass;
 

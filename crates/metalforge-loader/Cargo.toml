@@ -8,3 +8,5 @@ metalforge-lib = { path = "../metalforge-lib" }
 rockysmithereens_parser = { git = "https://github.com/tversteeg/rockysmithereens.git", features = [ "profile-with-tracing" ] }
 hashbrown = "0.15"
 url = "2.5.4"
+serde_yaml = "0.9.33"
+serde = { version = "1.0.216", features = ["derive"] }

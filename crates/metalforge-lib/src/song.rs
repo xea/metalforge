@@ -1,9 +1,10 @@
 use url::Url;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Eq, PartialEq, PartialOrd)]
 pub struct Song {
     pub header: SongHeader,
-    pub path: Url
+    pub path: Url,
 }
 
 impl Song {
@@ -19,7 +20,8 @@ impl Song {
     }
 }
 
-#[derive(Debug, Hash, PartialOrd, PartialEq, Eq)]
+#[derive(Debug, Hash, PartialOrd, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SongHeader {
     pub title: String,
     pub title_sort: String,
@@ -33,14 +35,27 @@ pub struct SongHeader {
     pub arrangements: Vec<Arrangement>
 }
 
-#[derive(Debug, Hash, PartialOrd, PartialEq, Eq)]
+#[derive(Debug, Hash, PartialOrd, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Arrangement {
     pub name: String,
     pub instrument: Instrument
 }
 
-#[derive(Debug, Hash, PartialOrd, PartialEq, Eq)]
+#[derive(Debug, Hash, PartialOrd, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum Instrument {
     /// 6-string guitar
     Guitar6,
+}
+
+#[derive(Debug)]
+pub enum PitchClass {
+    C, CSharp, CFlat,
+    D, DSharp, DFlat,
+    E, ESharp, EFlat,
+    F, FSharp, FFlat,
+    G, GSharp, GFlat,
+    A, ASharp, AFlat,
+    B, BSharp, BFlat
 }

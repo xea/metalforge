@@ -15,6 +15,14 @@ impl SongLibrary {
         }
     }
 
+    pub fn add_song(&mut self, song: Song) {
+        self.songs.push(song);
+    }
+
+    pub fn song(&self, idx: usize) -> Option<&Song> {
+        self.songs.get(idx)
+    }
+
     pub fn iter(&self) -> std::slice::Iter<Song> {
         self.songs.iter()
     }

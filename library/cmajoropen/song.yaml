@@ -1,0 +1,26 @@
+---
+# Format version
+version: 1
+# The title of the song as displayed to the user
+title: C Major Open scale
+# The title of the song without redundant prefixes, used for sorting by songs
+titleSort: C Major Open scale
+# The title of the album as displayed to the user
+album: Scale exercises
+# The title of the album without redundant prefixes, used for sorting by album
+albumSort: Scale exercises
+# The name of the artist as displayed to the user
+artist: Music Theory Exercises
+# The name of the artist without redundant prefixes, used for sorting by artist
+artistSort: Music Theory Exercises
+# The year the song was published
+year: 2025
+# Incremental sequence of the song
+songVersion: 1
+# Length of the song in seconds
+lengthSec: 120
+# List of arrangements, one entry for each, e.g. rhythm guitar,
+arrangements:
+  - name: Guitar (6-string)
+    instrument: guitar6
+    path: 6string_guitar

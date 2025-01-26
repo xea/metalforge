@@ -43,7 +43,7 @@ pub fn menu_plugin(app: &mut App) {
 
 
 #[derive(Event, Copy, Clone, Default)]
-enum MenuEvent {
+pub enum MenuEvent {
     #[default]
     OpenMainMenu,
     OpenSettingsMenu,
@@ -67,8 +67,8 @@ pub(crate) struct MenuState {
     selected_idx: usize,
     menu_len: usize,
     current_action: MenuEvent,
-    selected_song_idx: usize,
-    selected_arrangement_idx: usize,
+    pub selected_song_idx: usize,
+    pub selected_arrangement_idx: usize,
     menu_stack: Vec<(usize, MenuEvent)>
 }
 

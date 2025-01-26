@@ -1,25 +1,43 @@
+use crate::ui::menu::{MenuEvent, MenuState};
+use crate::ui::{AppState, LibraryView};
+use bevy::app::AppExit;
 use bevy::color::palettes::basic::{PURPLE, RED};
-use bevy::prelude::{default, in_state, App, AssetServer, Assets, BuildChildren, Camera2d, ChildBuild, Color, ColorMaterial, Commands, Component, IntoSystemConfigs, Mesh, Mesh2d, MeshMaterial2d, OnEnter, Query, Rectangle, Res, ResMut, Resource, Sprite, Text2d, TextFont, Time, Transform, Update, Vec2, Vec3, With};
+use bevy::input::ButtonInput;
+use bevy::prelude::{default, in_state, App, AssetServer, Assets, BuildChildren, Camera2d, ChildBuild, Color, ColorMaterial, Commands, Component, Event, EventReader, EventWriter, IntoSystemConfigs, KeyCode, Mesh, Mesh2d, MeshMaterial2d, NextState, OnEnter, Query, Rectangle, Res, ResMut, Resource, Sprite, State, Text2d, TextFont, Time, Transform, Update, Vec2, Vec3, With};
 use bevy::text::TextBounds;
-use crate::ui::AppState;
 
-#[derive(Resource)]
-struct PlayerState {
+#[derive(Event, Copy, Clone)]
+pub enum PlayerEvent {
 
 }
 
+#[derive(Resource)]
+struct PlayerState {
+}
+
 pub fn player_plugin(app: &mut App) {
-    app.add_systems(OnEnter(AppState::Player), setup)
+    app.add_systems(OnEnter(AppState::Player), setup_player)
+        .add_systems(Update, handle_player_events.run_if(in_state(AppState::Player)))
+        .add_systems(Update, handle_keyboard.run_if(in_state(AppState::Player)))
         .add_systems(Update, scroll_nodes.run_if(in_state(AppState::Player)))
         .add_systems(Update, move_camera.run_if(in_state(AppState::Player)));
 }
 
-fn setup(
+fn setup_player(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
-    asset_server: Res<AssetServer>
+    asset_server: Res<AssetServer>,
+    menu_state: Res<MenuState>,
+    library: Res<LibraryView>
 ) {
+    let song = library.song_library.song(menu_state.selected_song_idx)
+        .expect("Unable to open selected song");
+
+    let arrangement = song.header.arrangements.get(menu_state.selected_arrangement_idx)
+        .expect("Unable to find selected arrangement");
+
+
     commands.spawn((
         Note2d { kind: "C".to_string() },
         Mesh2d(meshes.add(Rectangle::default())),
@@ -64,6 +82,38 @@ fn setup(
     });
 }
 
+fn handle_keyboard(
+    input: Res<ButtonInput<KeyCode>>,
+    current_app_state: Res<State<AppState>>,
+    mut events: EventWriter<crate::ui::menu::MenuEvent>,
+    mut menu_state: ResMut<MenuState>,
+) {
+    if input.just_pressed(KeyCode::Escape) {
+        match current_app_state.get() {
+            AppState::Player => {
+                events.send(MenuEvent::OpenMainMenu);
+            },
+            _ => {
+                println!("Ignored escape");
+            }
+        }
+    }
+}
+
+// TODO refactor event handler to make it more modular
+fn handle_player_events(
+    mut events: EventReader<PlayerEvent>,
+    mut menu_state: ResMut<MenuState>,
+    mut app_state: ResMut<NextState<AppState>>,
+    mut app_exit_events: EventWriter<AppExit>,
+) {
+    for event in events.read() {
+        match event {
+            _ => {}
+        }
+    }
+}
+
 #[derive(Component)]
 pub struct Note2d {
     pub kind: String
@@ -81,4 +131,9 @@ fn move_camera(mut query: Query<&mut Transform, With<Camera2d>>) {
     };
 
     camera.translation.x += 0.3;
+}
+
+#[cfg(test)]
+mod tests {
+
 }

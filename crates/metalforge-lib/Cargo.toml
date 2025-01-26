@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 url = "2.5"
+serde = { version = "1.0.216", features = ["derive"] }
