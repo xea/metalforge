@@ -62,28 +62,26 @@ fn parse_song(song_file: RSSongFile) -> std::io::Result<Vec<Song>> {
             } else {
                 candidate.add_arrangement(arrangement);
             }
+        } else if manifest.attributes().arrangement_name == ARRANGEMENT_VOCALS {
+            println!("Ignoring vocal arrangement")
         } else {
-            if manifest.attributes().arrangement_name == ARRANGEMENT_VOCALS {
-                println!("Ignoring vocal arrangement")
-            } else {
-                let song = Song {
-                    header: SongHeader {
-                        title: attributes.song_name.to_string(),
-                        title_sort: attributes.song_name_sort.to_string(),
-                        album: attributes.album_name.to_string(),
-                        album_sort: attributes.album_name_sort.to_string(),
-                        artist: attributes.artist_name.to_string(),
-                        artist_sort: attributes.artist_name_sort.to_string(),
-                        year: attributes.song_year,
-                        version: manifest.iteration_version,
-                        length_sec: attributes.song_length as u16,
-                        arrangements: vec![arrangement],
-                    },
-                    path: Url::parse(DEFAULT_URL).unwrap(),
-                };
+            let song = Song {
+                header: SongHeader {
+                    title: attributes.song_name.to_string(),
+                    title_sort: attributes.song_name_sort.to_string(),
+                    album: attributes.album_name.to_string(),
+                    album_sort: attributes.album_name_sort.to_string(),
+                    artist: attributes.artist_name.to_string(),
+                    artist_sort: attributes.artist_name_sort.to_string(),
+                    year: attributes.song_year,
+                    version: manifest.iteration_version,
+                    length_sec: attributes.song_length as u16,
+                    arrangements: vec![arrangement],
+                },
+                path: Url::parse(DEFAULT_URL).unwrap(),
+            };
 
-                songs.push(song);
-            }
+            songs.push(song);
         }
     }
 
