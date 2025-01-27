@@ -7,16 +7,15 @@ use bevy::prelude::{App, AppExtStates, Camera2d, Commands, Startup};
 use bevy::sprite::Wireframe2dPlugin;
 use bevy::winit::WinitSettings;
 use bevy::DefaultPlugins;
+use metalforge_loader::scan_libraries;
 use std::env::current_dir;
-use std::path::Path;
-use metalforge_loader::scan_song_directory;
 
 fn main() -> std::io::Result<()> {
     // Load configuration
     let cfg = load_config();
 
     // Read songs from library path
-    let library = build_library(cfg.library.path.as_str())?;
+    let library = build_library(&cfg.library.paths)?;
 
     // Initialise application
     let mut app = init_app(&cfg);
@@ -36,11 +35,9 @@ fn load_config() -> AppConfig {
         .map(|cwd| cwd.join("config").join("config.yaml"))
         .expect("Unable to load current directory");
 
-    let file = std::fs::File::open(path)
-        .expect("Unable to open config.yaml");
+    let file = std::fs::File::open(path).expect("Unable to open config.yaml");
 
-    serde_yaml::from_reader(file)
-        .expect("Unable to parse config.yaml")
+    serde_yaml::from_reader(file).expect("Unable to parse config.yaml")
 }
 
 fn init_app(cfg: &AppConfig) -> App {
@@ -51,10 +48,7 @@ fn init_app(cfg: &AppConfig) -> App {
     // State initialisation has to come after DefaultPlugins
     app.init_state::<AppState>();
     app.add_systems(Startup, setup);
-    app.add_plugins((
-        ui::menu::menu_plugin,
-        ui::player::player_plugin
-    ));
+    app.add_plugins((ui::menu::menu_plugin, ui::player::player_plugin));
 
     if cfg.display.wireframe {
         app.add_plugins(Wireframe2dPlugin);
@@ -63,8 +57,8 @@ fn init_app(cfg: &AppConfig) -> App {
     // Display mode
     match cfg.display.window_type {
         WindowType::Desktop => app.insert_resource(WinitSettings::desktop_app()),
-        WindowType::Game    => app.insert_resource(WinitSettings::game()),
-        WindowType::Mobile  => app.insert_resource(WinitSettings::mobile()),
+        WindowType::Game => app.insert_resource(WinitSettings::game()),
+        WindowType::Mobile => app.insert_resource(WinitSettings::mobile()),
     };
 
     app
@@ -74,8 +68,8 @@ fn setup(mut commands: Commands) {
     commands.spawn(Camera2d);
 }
 
-fn build_library<P: AsRef<Path>>(path: P) -> std::io::Result<LibraryView> {
-    let song_library = scan_song_directory(path)?;
+fn build_library(paths: &Vec<String>) -> std::io::Result<LibraryView> {
+    let song_library = scan_libraries(&paths)?;
 
     Ok(LibraryView::from(song_library))
 }

@@ -4,10 +4,7 @@ use bevy::prelude::{Commands, Component, ResMut};
 #[derive(Component)]
 pub struct OnSettingsMenu;
 
-pub fn setup_settings(
-    commands: Commands,
-    menu_state: ResMut<MenuState>
-) {
+pub fn setup_settings(commands: Commands, menu_state: ResMut<MenuState>) {
     let menu_items = vec![
         MenuItem::from((0, "Display settings", MenuEvent::Todo)),
         MenuItem::from((1, "Debug settings", MenuEvent::Todo)),
@@ -15,4 +12,3 @@ pub fn setup_settings(
 
     setup_menu("Settings", menu_items, OnSettingsMenu, commands, menu_state)
 }
-

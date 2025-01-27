@@ -3,21 +3,26 @@ use crate::ui::{AppState, LibraryView};
 use bevy::app::AppExit;
 use bevy::color::palettes::basic::{PURPLE, RED};
 use bevy::input::ButtonInput;
-use bevy::prelude::{default, in_state, App, AssetServer, Assets, BuildChildren, Camera2d, ChildBuild, Color, ColorMaterial, Commands, Component, Event, EventReader, EventWriter, IntoSystemConfigs, KeyCode, Mesh, Mesh2d, MeshMaterial2d, NextState, OnEnter, Query, Rectangle, Res, ResMut, Resource, Sprite, State, Text2d, TextFont, Time, Transform, Update, Vec2, Vec3, With};
+use bevy::prelude::{
+    default, in_state, App, AssetServer, Assets, BuildChildren, Camera2d, ChildBuild, Color,
+    ColorMaterial, Commands, Component, Event, EventReader, EventWriter, IntoSystemConfigs,
+    KeyCode, Mesh, Mesh2d, MeshMaterial2d, NextState, OnEnter, Query, Rectangle, Res, ResMut,
+    Resource, Sprite, State, Text2d, TextFont, Time, Transform, Update, Vec2, Vec3, With,
+};
 use bevy::text::TextBounds;
 
 #[derive(Event, Copy, Clone)]
-pub enum PlayerEvent {
-
-}
+pub enum PlayerEvent {}
 
 #[derive(Resource)]
-struct PlayerState {
-}
+struct PlayerState {}
 
 pub fn player_plugin(app: &mut App) {
     app.add_systems(OnEnter(AppState::Player), setup_player)
-        .add_systems(Update, handle_player_events.run_if(in_state(AppState::Player)))
+        .add_systems(
+            Update,
+            handle_player_events.run_if(in_state(AppState::Player)),
+        )
         .add_systems(Update, handle_keyboard.run_if(in_state(AppState::Player)))
         .add_systems(Update, scroll_nodes.run_if(in_state(AppState::Player)))
         .add_systems(Update, move_camera.run_if(in_state(AppState::Player)));
@@ -29,28 +34,36 @@ fn setup_player(
     mut materials: ResMut<Assets<ColorMaterial>>,
     asset_server: Res<AssetServer>,
     menu_state: Res<MenuState>,
-    library: Res<LibraryView>
+    library: Res<LibraryView>,
 ) {
-    let song = library.song_library.song(menu_state.selected_song_idx)
+    let song = library
+        .song_library
+        .song(menu_state.selected_song_idx)
         .expect("Unable to open selected song");
 
-    let arrangement = song.header.arrangements.get(menu_state.selected_arrangement_idx)
+    let arrangement = song
+        .header
+        .arrangements
+        .get(menu_state.selected_arrangement_idx)
         .expect("Unable to find selected arrangement");
 
-
     commands.spawn((
-        Note2d { kind: "C".to_string() },
+        Note2d {
+            kind: "C".to_string(),
+        },
         Mesh2d(meshes.add(Rectangle::default())),
         MeshMaterial2d(materials.add(Color::from(PURPLE))),
-        Transform::default().with_scale(Vec3::new(64., 32., 16.))
-        ));
+        Transform::default().with_scale(Vec3::new(64., 32., 16.)),
+    ));
 
     commands.spawn((
-        Note2d { kind: "D".to_string() },
+        Note2d {
+            kind: "D".to_string(),
+        },
         Mesh2d(meshes.add(Rectangle::default())),
         MeshMaterial2d(materials.add(Color::from(RED))),
         // Move this mesh slightly to the left
-        Transform::from_xyz(-64., 0., -1.).with_scale(Vec3::splat(32.))
+        Transform::from_xyz(-64., 0., -1.).with_scale(Vec3::splat(32.)),
     ));
 
     // Text 2D
@@ -60,26 +73,27 @@ fn setup_player(
         ..default()
     };
 
-    commands.spawn((
-        Text2d::new("C"),
-        text_font.clone(),
-        ));
+    commands.spawn((Text2d::new("C"), text_font.clone()));
 
     //
     let box_size = Vec2::new(60., 30.);
 
-    commands.spawn((
-        Note2d { kind: "E".to_string() },
-        Sprite::from_color(Color::srgb(0.2, 0.3, 0.7), box_size),
-        Transform::from_translation(Vec3::new(0.0, 30.0, 0.0))
-    )).with_children(|builder| {
-        builder.spawn((
-            Text2d::new("D"),
-            text_font.clone(),
-            TextBounds::from(box_size),
-            Transform::from_translation(Vec3::Z)
-        ));
-    });
+    commands
+        .spawn((
+            Note2d {
+                kind: "E".to_string(),
+            },
+            Sprite::from_color(Color::srgb(0.2, 0.3, 0.7), box_size),
+            Transform::from_translation(Vec3::new(0.0, 30.0, 0.0)),
+        ))
+        .with_children(|builder| {
+            builder.spawn((
+                Text2d::new("D"),
+                text_font.clone(),
+                TextBounds::from(box_size),
+                Transform::from_translation(Vec3::Z),
+            ));
+        });
 }
 
 fn handle_keyboard(
@@ -92,7 +106,7 @@ fn handle_keyboard(
         match current_app_state.get() {
             AppState::Player => {
                 events.send(MenuEvent::OpenMainMenu);
-            },
+            }
             _ => {
                 println!("Ignored escape");
             }
@@ -116,7 +130,7 @@ fn handle_player_events(
 
 #[derive(Component)]
 pub struct Note2d {
-    pub kind: String
+    pub kind: String,
 }
 
 fn scroll_nodes(mut query: Query<&mut Transform, With<Note2d>>, _time: Res<Time>) {
@@ -134,6 +148,4 @@ fn move_camera(mut query: Query<&mut Transform, With<Camera2d>>) {
 }
 
 #[cfg(test)]
-mod tests {
-
-}
+mod tests {}

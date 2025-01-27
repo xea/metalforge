@@ -6,11 +6,7 @@ use bevy::prelude::{Commands, Component, Res, ResMut};
 #[derive(Component)]
 pub struct OnSongLibrary;
 
-pub fn setup_song_library(
-    commands: Commands,
-    library: Res<LibraryView>,
-    state: ResMut<MenuState>
-) {
+pub fn setup_song_library(commands: Commands, library: Res<LibraryView>, state: ResMut<MenuState>) {
     let mut menu_items = vec![];
 
     for (idx, song) in library.iter().enumerate() {

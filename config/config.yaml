@@ -4,4 +4,5 @@ display:
   wireframe: false
   windowType: game
 library:
-  path: "./library"
+  paths:
+    - "./library"

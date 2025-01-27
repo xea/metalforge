@@ -14,18 +14,17 @@ pub struct AppConfig {
 pub struct DisplayConfig {
     // Enable wireframe displays
     pub wireframe: bool,
-    pub window_type: WindowType
+    pub window_type: WindowType,
 }
 
 #[derive(Default, Resource, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct DebugConfig {
-}
+pub struct DebugConfig {}
 
 #[derive(Default, Resource, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LibraryConfig {
-    pub path: String
+    pub paths: Vec<String>,
 }
 
 #[derive(Default, Resource, Serialize, Deserialize)]
@@ -34,5 +33,5 @@ pub enum WindowType {
     Desktop,
     #[default]
     Game,
-    Mobile
+    Mobile,
 }

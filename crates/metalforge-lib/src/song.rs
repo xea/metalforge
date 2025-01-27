@@ -1,5 +1,5 @@
-use url::Url;
 use serde::{Deserialize, Serialize};
+use url::Url;
 
 #[derive(Debug, Eq, PartialEq, PartialOrd)]
 pub struct Song {
@@ -9,7 +9,11 @@ pub struct Song {
 
 impl Song {
     pub fn id(&self) -> String {
-        let mut id_str = format!("{}-{}-{}-{}", self.header.title, self.header.artist, self.header.album, self.header.year).to_lowercase();
+        let mut id_str = format!(
+            "{}-{}-{}-{}",
+            self.header.title, self.header.artist, self.header.album, self.header.year
+        )
+        .to_lowercase();
         id_str.retain(|c| c.is_alphanumeric());
         id_str
     }
@@ -32,14 +36,14 @@ pub struct SongHeader {
     pub year: u16,
     pub version: u16,
     pub length_sec: u16,
-    pub arrangements: Vec<Arrangement>
+    pub arrangements: Vec<Arrangement>,
 }
 
 #[derive(Debug, Hash, PartialOrd, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Arrangement {
     pub name: String,
-    pub instrument: Instrument
+    pub instrument: Instrument,
 }
 
 #[derive(Debug, Hash, PartialOrd, PartialEq, Eq, Serialize, Deserialize)]
@@ -51,11 +55,25 @@ pub enum Instrument {
 
 #[derive(Debug)]
 pub enum PitchClass {
-    C, CSharp, CFlat,
-    D, DSharp, DFlat,
-    E, ESharp, EFlat,
-    F, FSharp, FFlat,
-    G, GSharp, GFlat,
-    A, ASharp, AFlat,
-    B, BSharp, BFlat
+    C,
+    CSharp,
+    CFlat,
+    D,
+    DSharp,
+    DFlat,
+    E,
+    ESharp,
+    EFlat,
+    F,
+    FSharp,
+    FFlat,
+    G,
+    GSharp,
+    GFlat,
+    A,
+    ASharp,
+    AFlat,
+    B,
+    BSharp,
+    BFlat,
 }

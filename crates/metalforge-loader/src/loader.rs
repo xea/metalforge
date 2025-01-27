@@ -1,148 +1,111 @@
+use crate::scan_library_url;
+use log::trace;
+use metalforge_lib::library::SongLibrary;
+use metalforge_lib::song::{Song, SongHeader};
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 use url::Url;
-use metalforge_lib::song::{Song, SongHeader};
 
 /// Library definition is a list of absolute or relative directories in which
 /// loadable songs can be found.
 #[derive(Serialize, Deserialize)]
 pub struct LibraryDef {
-    songs: Vec<SongEntry>
+    songs: Vec<SongEntry>,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct SongEntry {
     /// Absolute or relative path to the song's location
-    pub path: String
+    pub path: String,
 }
 
-pub fn load_library(path: &str) -> std::io::Result<Vec<Song>> {
-    let library_def = load_library_def(path)?;
+pub fn load_library(url: &Url) -> std::io::Result<SongLibrary> {
+    let mut library = SongLibrary::empty();
 
-    let mut songs = vec![];
+    trace!("Loading library definition {}", url);
 
-    for song in &library_def.songs {
-        match load_song_header(song.path.as_str()) {
-            Ok(header) => {
-                let song = Song {
-                    header,
-                    path: Url::parse(song.path.as_str()).unwrap(),
-                };
+    let library_def = load_library_def(url)?;
 
-                songs.push(song);
-            },
-            Err(err) => eprintln!("Failed to load song {}: {}", song.path, err)
-        }
+    trace!("Library definition loaded with {} song entries", library_def.songs.len());
+
+    for song_entry in &library_def.songs {
+        // Build the URL to the song entry
+        let mut song_url = url.clone();
+        let mut song_path = song_url.to_file_path().expect("Failed to convert song URL to file path");
+        // Remove the library descriptor file name from the path
+        song_path.pop();
+        // Replace it with the file name of the current entry
+        song_path.push(song_entry.path.as_str());
+        //song_path.push(SONG_DESCRIPTOR);
+
+        song_url.set_path(song_path.to_str().expect("Failed to convert path to URL"));
+
+        let mut new_library = scan_library_url(&song_url)?;
+        library.merge(&mut new_library);
     }
 
-    Ok(songs)
+    Ok(library)
 }
 
-pub fn load_song_header(path: &str) -> std::io::Result<SongHeader> {
-    let bytes = load_file(path)?;
+pub fn load_song(song_url: &Url) -> std::io::Result<SongLibrary> {
+    let mut library = SongLibrary::empty();
+
+    let song = load_song_header(&song_url)
+    .map(|header| Song {
+        header,
+        path: song_url.clone()
+    })?;
+
+    library.add_song(song);
+
+    Ok(library)
+}
+
+pub fn load_song_header(url: &Url) -> std::io::Result<SongHeader> {
+    let bytes = load_file_contents(url)?;
 
     serde_yaml::from_slice(bytes.as_slice())
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
 }
 
-fn load_library_def(path: &str) -> std::io::Result<LibraryDef> {
-    let bytes = load_file(path)?;
+
+fn load_library_def(url: &Url) -> std::io::Result<LibraryDef> {
+    let bytes = load_file_contents(url)?;
 
     serde_yaml::from_slice(bytes.as_slice())
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
 }
 
-pub fn load_file(path: &str) -> std::io::Result<Vec<u8>> {
-    match Url::parse(path) {
-        Ok(url) =>
-            match url.scheme() {
-                "file" => load_file_from_fs(url.path()),
-                "http" | "https" => load_file_from_http(&url),
-                scheme => Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, format!("Unsupported scheme: {}", scheme)))
-            }
-        Err(error) => load_file_from_fs(path)
+pub fn load_file_contents(url: &Url) -> std::io::Result<Vec<u8>> {
+    trace!("Loading file {}", url);
+
+    match url.scheme() {
+        "file" => load_file_from_fs(url.to_file_path().expect("Failed to convert url to file path")),
+        scheme => Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, format!("Unsupported scheme: {}", scheme)))
     }
 }
 
 fn load_file_from_fs<P: AsRef<Path>>(path: P) -> std::io::Result<Vec<u8>> {
+    println!("Loading file: {:?}", path.as_ref());
+
     let mut buffer = vec![];
-    let _ = File::open(path)?.read_to_end(&mut buffer);
 
-    Ok(buffer)
-}
-
-fn load_file_from_http(url: &Url) -> std::io::Result<Vec<u8>> {
-    todo!()
-}
-/*
-/// Load and parse a library definition from a file
-pub fn load_library_def(path: &str) -> std::io::Result<Vec<std::io::Result<Song>>> {
-    // TODO: implement loading from URLs, allowing loading from network as well
-
-    serde_yaml::from_reader(std::fs::File::open(path)?)
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
-        .map(|library_def| load_library(&library_def))
-}
-
-/// Load and parse a song definition from a file
-pub fn load_song_def(path: &str) -> std::io::Result<SongEntry> {
-    // TODO: implement loading from URLs, allowing loading from network as well
-    serde_yaml::from_reader(std::fs::File::open(path)?)
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
-}
-
-pub fn load_song(song_def: &SongEntry) -> std::io::Result<Song> {
-    load_song_header(song_def).map(|header| Song {
-        header,
-        path: Url::parse(song_def.path.as_str()).unwrap()
-    })
-}
-
-/// Load and parse a song header from a file
-pub fn load_song_header(song_def: &SongEntry) -> std::io::Result<SongHeader> {
-    // TODO: implement loading from URLs, allowing loading from network as well
-    serde_yaml::from_reader(std::fs::File::open(&song_def.path)?)
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
-}
-
-pub fn load_library(library_def: &LibraryDef) -> Vec<std::io::Result<Song>> {
-    library_def.songs.iter()
-        .map(|song| load_song(song))
-        .collect()
+    match File::open(&path) {
+        Ok(mut file) => {
+            let _ = file.read_to_end(&mut buffer);
+            Ok(buffer)
+        }
+        Err(error) => {
+            trace!("Failed to load file {:?} ({})", path.as_ref().to_str(), error);
+            Err(error)
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::loader::{load_library_def, load_song_header, SongEntry};
-
     #[test]
-    fn library_definitions_parse_correctly() {
-        let result = load_library_def("../../library/library.yaml");
-
-        assert!(result.is_ok());
-
-        let songs = result.unwrap();
-
-        assert!(!songs.is_empty());
-    }
-
-    #[test]
-    fn missing_library_definitions_parse_correctly() {
-        let result = load_library_def("does_not_exist.yaml");
-
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn song_headers_parse_correctly() {
-        let result = load_song_header(&SongEntry { path: "../../library/cmajoropen/song.yaml".to_string() });
-
-        assert!(result.is_ok());
-
-        let song = result.unwrap();
-        assert_eq!(1, song.arrangements.len());
-    }
+    fn test_load_library() {}
 }
- */

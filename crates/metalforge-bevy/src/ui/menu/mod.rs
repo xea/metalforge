@@ -3,6 +3,7 @@ mod main_menu;
 mod settings;
 mod song_library;
 
+use crate::ui::menu::arrangements::{setup_arrangement, OnArrangements};
 use crate::ui::menu::main_menu::{setup_main_menu, OnMainMenu};
 use crate::ui::menu::settings::{setup_settings, OnSettingsMenu};
 use crate::ui::menu::song_library::{setup_song_library, OnSongLibrary};
@@ -11,36 +12,59 @@ use bevy::app::{App, AppExit, Update};
 use bevy::color::Color;
 use bevy::hierarchy::{BuildChildren, ChildBuild, DespawnRecursiveExt};
 use bevy::input::ButtonInput;
-use bevy::prelude::{default, in_state, Changed, Commands, Component, Entity, Event, EventReader, EventWriter, IntoSystemConfigs, KeyCode, NextState, OnEnter, OnExit, Query, Res, ResMut, Resource, State, With};
+use bevy::prelude::{
+    default, in_state, Changed, Commands, Component, Entity, Event, EventReader, EventWriter,
+    IntoSystemConfigs, KeyCode, NextState, OnEnter, OnExit, Query, Res, ResMut, Resource, State,
+    With,
+};
 use bevy::text::TextColor;
 use bevy_ui::prelude::{Button, Text};
 use bevy_ui::{FlexDirection, Interaction, Node, Val};
-use crate::ui::menu::arrangements::{setup_arrangement, OnArrangements};
 
 pub const NORMAL_COLOR: Color = Color::srgb(1., 1., 1.);
 pub const HOVERED_COLOR: Color = Color::srgb(0.6, 0.6, 1.);
 
 pub fn menu_plugin(app: &mut App) {
-    let menu_handlers = (highlight_menu, handle_menu_mouse, handle_menu_keys, handle_menu_events);
+    let menu_handlers = (
+        highlight_menu,
+        handle_menu_mouse,
+        handle_menu_keys,
+        handle_menu_events,
+    );
 
-    app
-        .insert_resource(MenuState::default())
+    app.insert_resource(MenuState::default())
         .add_event::<MenuEvent>()
         .add_systems(OnEnter(AppState::MainMenu), setup_main_menu)
         .add_systems(OnExit(AppState::MainMenu), despawn_screen::<OnMainMenu>)
         .add_systems(OnEnter(AppState::SongLibrary), setup_song_library)
-        .add_systems(OnExit(AppState::SongLibrary), despawn_screen::<OnSongLibrary>)
+        .add_systems(
+            OnExit(AppState::SongLibrary),
+            despawn_screen::<OnSongLibrary>,
+        )
         .add_systems(OnEnter(AppState::SettingsMenu), setup_settings)
-        .add_systems(OnExit(AppState::SettingsMenu), despawn_screen::<OnSettingsMenu>)
+        .add_systems(
+            OnExit(AppState::SettingsMenu),
+            despawn_screen::<OnSettingsMenu>,
+        )
         .add_systems(OnEnter(AppState::Arrangements), setup_arrangement)
-        .add_systems(OnExit(AppState::Arrangements), despawn_screen::<OnArrangements>)
+        .add_systems(
+            OnExit(AppState::Arrangements),
+            despawn_screen::<OnArrangements>,
+        )
         .add_systems(Update, menu_handlers.run_if(in_state(AppState::MainMenu)))
-        .add_systems(Update, menu_handlers.run_if(in_state(AppState::SettingsMenu)))
-        .add_systems(Update, menu_handlers.run_if(in_state(AppState::SongLibrary)))
-        .add_systems(Update, menu_handlers.run_if(in_state(AppState::Arrangements)))
-    ;
+        .add_systems(
+            Update,
+            menu_handlers.run_if(in_state(AppState::SettingsMenu)),
+        )
+        .add_systems(
+            Update,
+            menu_handlers.run_if(in_state(AppState::SongLibrary)),
+        )
+        .add_systems(
+            Update,
+            menu_handlers.run_if(in_state(AppState::Arrangements)),
+        );
 }
-
 
 #[derive(Event, Copy, Clone, Default)]
 pub enum MenuEvent {
@@ -55,7 +79,7 @@ pub enum MenuEvent {
     Play,
     Quit,
     Todo,
-    Ignore
+    Ignore,
 }
 
 #[derive(Component, Debug)]
@@ -69,7 +93,7 @@ pub(crate) struct MenuState {
     current_action: MenuEvent,
     pub selected_song_idx: usize,
     pub selected_arrangement_idx: usize,
-    menu_stack: Vec<(usize, MenuEvent)>
+    menu_stack: Vec<(usize, MenuEvent)>,
 }
 
 impl MenuState {
@@ -85,7 +109,7 @@ impl MenuState {
     pub fn select_idx(&mut self, idx: usize) {
         self.selected_idx = idx.max(0).min(self.menu_len.max(1) - 1);
     }
-    
+
     pub fn select_next(&mut self) {
         self.select_idx(self.selected_idx + 1);
     }
@@ -95,7 +119,8 @@ impl MenuState {
     }
 
     pub fn push(&mut self) {
-        self.menu_stack.push((self.selected_idx, self.current_action));
+        self.menu_stack
+            .push((self.selected_idx, self.current_action));
         self.select_idx(0);
     }
 
@@ -106,7 +131,10 @@ impl MenuState {
     }
 }
 
-fn highlight_menu(mut query: Query<(&MenuEvent, &mut TextColor, &MenuIdx)>, mut menu_state: ResMut<MenuState>) {
+fn highlight_menu(
+    mut query: Query<(&MenuEvent, &mut TextColor, &MenuIdx)>,
+    mut menu_state: ResMut<MenuState>,
+) {
     if menu_state.idx_changed() {
         for (event, mut color, menu_idx) in query.iter_mut() {
             if menu_idx.0 == menu_state.selected_idx {
@@ -121,7 +149,10 @@ fn highlight_menu(mut query: Query<(&MenuEvent, &mut TextColor, &MenuIdx)>, mut 
 
 fn handle_menu_mouse(
     mut events: EventWriter<MenuEvent>,
-    mut interactions: Query<(&Interaction, &MenuIdx, &MenuEvent), (Changed<Interaction>, With<Button>)>
+    mut interactions: Query<
+        (&Interaction, &MenuIdx, &MenuEvent),
+        (Changed<Interaction>, With<Button>),
+    >,
 ) {
     for (interaction, idx, event) in interactions.iter_mut() {
         match interaction {
@@ -246,7 +277,7 @@ fn despawn_screen<T: Component>(mut commands: Commands, query: Query<Entity, Wit
 pub struct MenuItem {
     idx: MenuIdx,
     title: String,
-    event: MenuEvent
+    event: MenuEvent,
 }
 
 impl From<(usize, &str, MenuEvent)> for MenuItem {
@@ -260,58 +291,71 @@ impl From<(usize, String, MenuEvent)> for MenuItem {
         MenuItem {
             idx: MenuIdx(value.0),
             title: value.1,
-            event: value.2
+            event: value.2,
         }
     }
 }
 
-pub(crate) fn setup_menu<T: Component>(menu_title: &str, menu_items: Vec<MenuItem>, tag: T, mut commands: Commands, mut state: ResMut<MenuState>) {
-    state.current_action = menu_items.get(state.selected_idx).map(|item| item.event).unwrap_or(MenuEvent::Ignore);
+pub(crate) fn setup_menu<T: Component>(
+    menu_title: &str,
+    menu_items: Vec<MenuItem>,
+    tag: T,
+    mut commands: Commands,
+    mut state: ResMut<MenuState>,
+) {
+    state.current_action = menu_items
+        .get(state.selected_idx)
+        .map(|item| item.event)
+        .unwrap_or(MenuEvent::Ignore);
     state.menu_len = menu_items.len();
 
     // Container defining the overall outline of the menu, including tagging required for screen de-spawning
-    commands.spawn((tag, Node {
-        height: Val::Percent(100.0),
-        width: Val::Percent(100.0),
-        flex_direction: FlexDirection::Column,
-        ..default()
-    })).with_children(|parent| {
-        // Draw title
-        parent.spawn(Text(menu_title.to_string()));
+    commands
+        .spawn((
+            tag,
+            Node {
+                height: Val::Percent(100.0),
+                width: Val::Percent(100.0),
+                flex_direction: FlexDirection::Column,
+                ..default()
+            },
+        ))
+        .with_children(|parent| {
+            // Draw title
+            parent.spawn(Text(menu_title.to_string()));
 
-        // Create a button for each menu item, highlighting the first element in the list
-        for menu_item in menu_items.into_iter() {
-            let text_color = if menu_item.idx.0 == state.selected_idx {
-                HOVERED_COLOR
-            } else {
-                NORMAL_COLOR
-            };
+            // Create a button for each menu item, highlighting the first element in the list
+            for menu_item in menu_items.into_iter() {
+                let text_color = if menu_item.idx.0 == state.selected_idx {
+                    HOVERED_COLOR
+                } else {
+                    NORMAL_COLOR
+                };
 
-            parent.spawn((
-                Button,
-                menu_item.idx,
-                menu_item.event,
-                Text(menu_item.title),
-                TextColor(text_color),
-                //BackgroundColor(Color::from(RED)),
-                Node {
-                    width: Val::Percent(70.0),
-                    ..default()
-                }
-            ));
-        }
-    });
+                parent.spawn((
+                    Button,
+                    menu_item.idx,
+                    menu_item.event,
+                    Text(menu_item.title),
+                    TextColor(text_color),
+                    //BackgroundColor(Color::from(RED)),
+                    Node {
+                        width: Val::Percent(70.0),
+                        ..default()
+                    },
+                ));
+            }
+        });
 }
-
 
 #[cfg(test)]
 mod tests {
+    use crate::ui::menu::{handle_menu_events, handle_menu_keys, MenuEvent, MenuState};
+    use crate::ui::AppState;
     use bevy::app::Update;
     use bevy::input::ButtonInput;
     use bevy::prelude::{in_state, App, AppExtStates, IntoSystemConfigs, KeyCode};
     use bevy::state::app::StatesPlugin;
-    use crate::ui::AppState;
-    use crate::ui::menu::{handle_menu_events, handle_menu_keys, MenuEvent, MenuState};
 
     #[test]
     fn default_menu_idx_is_zero() {
@@ -323,8 +367,7 @@ mod tests {
         assert_eq!(0, app.world().resource::<MenuState>().selected_idx);
     }
 
-    fn test_handler() {
-    }
+    fn test_handler() {}
 
     #[test]
     fn arrow_key_down_increments_the_currently_selected_menu_item_until_last_item() {

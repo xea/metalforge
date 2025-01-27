@@ -1,37 +1,40 @@
+use crate::loader::load_file_contents;
+use metalforge_lib::library::SongLibrary;
 use metalforge_lib::song::{Arrangement, Instrument, Song, SongHeader};
 use rockysmithereens_parser::SongFile as RSSongFile;
-use std::fs::File;
-use std::io::{Error, ErrorKind, Read};
-use std::path::Path;
+use std::io::{Error, ErrorKind, };
 use url::Url;
 
 const DEFAULT_URL: &str = "file:///";
 const ARRANGEMENT_VOCALS: &str = "Vocals";
 
-pub fn load_song_from_psarc<P: AsRef<Path>>(path: P) -> std::io::Result<Vec<Song>> {
-    let url = path_to_url(path.as_ref())?;
+pub(crate) fn load_psarc(url: &Url) -> std::io::Result<SongLibrary> {
+    let mut library = SongLibrary::empty();
 
-    File::open(path)
-        .and_then(|mut file| read_file(&mut file))
-        .and_then(parse_songfile)
+    let bytes = load_file_contents(url)?;
+    let songs = load_song_from_psarc(&bytes, url)?;
+
+    songs.into_iter().for_each(|song| library.add_song(song));
+
+    Ok(library)
+}
+
+fn load_song_from_psarc(bytes: &Vec<u8>, url: &Url) -> std::io::Result<Vec<Song>> {
+    parse_songfile(bytes)
         .and_then(parse_song)
         .and_then(|mut songs| {
-            update_path(&mut songs, url);
+            update_path(&mut songs, url.clone());
             Ok(songs)
         })
 }
 
-fn read_file(file: &mut File) -> std::io::Result<Vec<u8>> {
-    let mut bytes = Vec::new();
-    file.read_to_end(&mut bytes)
-        .map(|_| bytes)
+/// Attempt to parse the raw contents of a file as a PSARC song or return with an error in case of
+/// a failure
+fn parse_songfile(data: &Vec<u8>) -> std::io::Result<RSSongFile> {
+    RSSongFile::parse(&data).map_err(|e| Error::new(ErrorKind::InvalidData, e))
 }
 
-fn parse_songfile(data: Vec<u8>) -> std::io::Result<RSSongFile> {
-    RSSongFile::parse(&data)
-        .map_err(|e| Error::new(ErrorKind::InvalidData, e))
-}
-
+/// Convert a PSARC song file into a Metalforge song file or files.
 fn parse_song(song_file: RSSongFile) -> std::io::Result<Vec<Song>> {
     let mut songs: Vec<Song> = vec![];
 
@@ -40,10 +43,10 @@ fn parse_song(song_file: RSSongFile) -> std::io::Result<Vec<Song>> {
         println!("{:#?}", attributes);
 
         let candidate_result = songs.iter_mut().find(|candidate| {
-            candidate.header.artist == attributes.artist_name &&
-            candidate.header.album == attributes.album_name &&
-            candidate.header.title == attributes.song_name &&
-            candidate.header.year == attributes.song_year
+            candidate.header.artist == attributes.artist_name
+                && candidate.header.album == attributes.album_name
+                && candidate.header.title == attributes.song_name
+                && candidate.header.year == attributes.song_year
         });
 
         let instrument = Instrument::Guitar6;
@@ -74,7 +77,7 @@ fn parse_song(song_file: RSSongFile) -> std::io::Result<Vec<Song>> {
                         year: attributes.song_year,
                         version: manifest.iteration_version,
                         length_sec: attributes.song_length as u16,
-                        arrangements: vec![ arrangement ],
+                        arrangements: vec![arrangement],
                     },
                     path: Url::parse(DEFAULT_URL).unwrap(),
                 };
@@ -87,39 +90,35 @@ fn parse_song(song_file: RSSongFile) -> std::io::Result<Vec<Song>> {
     Ok(songs)
 }
 
-fn path_to_url<P: AsRef<Path>>(path: P) -> std::io::Result<Url> {
-    std::fs::canonicalize(path)
-        .and_then(|cp| {
-            Url::from_file_path(cp)
-                .map_err(|_| Error::new(ErrorKind::InvalidInput, "Invalid path"))
-    })
-}
-
 fn update_path(songs: &mut Vec<Song>, url: Url) -> () {
     songs.iter_mut().for_each(|song| song.path = url.clone());
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::loader::load_file_contents;
     use crate::smither::load_song_from_psarc;
+    use std::path::PathBuf;
+    use url::Url;
 
     #[test]
     fn parses_known_good_archives_without_errors() {
-        let result = load_song_from_psarc("../../examples/Nokia_Nokia-RingtoneDell_v1_p.psarc");
+        let file_url = Url::from_file_path(PathBuf::from("../../examples/Test-Artist_Test-Song_v1_p.psarc").canonicalize().unwrap()).unwrap();
+        let bytes = load_file_contents(&file_url).unwrap();
+        let result = load_song_from_psarc(&bytes, &file_url);
 
-        assert!(result.is_ok(), "Failed to load songs from psarc: {:?}", result);
-    }
-
-    #[test]
-    fn parsing_missing_files_yields_error() {
-        let result = load_song_from_psarc("../does_not_exist.psarc");
-
-        assert!(result.is_err(), "Expected missing archive but it existed");
+        assert!(
+            result.is_ok(),
+            "Failed to load songs from psarc: {:?}",
+            result
+        );
     }
 
     #[test]
     fn path_to_song_file_is_preserved_in_headers() {
-        let mut result = load_song_from_psarc("../../examples/Nokia_Nokia-RingtoneDell_v1_p.psarc")
+        let file_url = Url::from_file_path(PathBuf::from("../../examples/Test-Artist_Test-Song_v1_p.psarc").canonicalize().unwrap()).unwrap();
+        let bytes = load_file_contents(&file_url).unwrap();
+        let mut result = load_song_from_psarc(&bytes, &file_url)
             .expect("Failed to load songs from psarc");
 
         assert_eq!(1, result.len(), "No songs were loaded");
@@ -127,12 +126,17 @@ mod tests {
         let song = result.remove(0);
 
         assert!(song.path.as_str().starts_with("file://"));
-        assert!(song.path.as_str().ends_with("/examples/Nokia_Nokia-RingtoneDell_v1_p.psarc"));
+        assert!(song
+            .path
+            .as_str()
+            .ends_with("/examples/Test-Artist_Test-Song_v1_p.psarc"));
     }
 
     #[test]
     fn multiple_arrangements_are_merged_into_the_arrangements_of_the_song() {
-        let mut result = load_song_from_psarc("../../examples/Nokia_Nokia-RingtoneDell_v1_p.psarc")
+        let file_url = Url::from_file_path(PathBuf::from("../../examples/Test-Artist_Test-Song_v1_p.psarc").canonicalize().unwrap()).unwrap();
+        let bytes = load_file_contents(&file_url).unwrap();
+        let mut result = load_song_from_psarc(&bytes, &file_url)
             .expect("Failed to load songs from psarc");
 
         assert_eq!(1, result.len());
@@ -141,5 +145,4 @@ mod tests {
 
         assert!(song.header.arrangements.len() > 1);
     }
-
 }
