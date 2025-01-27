@@ -19,19 +19,19 @@ pub(crate) fn load_psarc(url: &Url) -> std::io::Result<SongLibrary> {
     Ok(library)
 }
 
-fn load_song_from_psarc(bytes: &Vec<u8>, url: &Url) -> std::io::Result<Vec<Song>> {
+fn load_song_from_psarc(bytes: &[u8], url: &Url) -> std::io::Result<Vec<Song>> {
     parse_songfile(bytes)
         .and_then(parse_song)
-        .and_then(|mut songs| {
+        .map(|mut songs| {
             update_path(&mut songs, url.clone());
-            Ok(songs)
+            songs
         })
 }
 
 /// Attempt to parse the raw contents of a file as a PSARC song or return with an error in case of
 /// a failure
-fn parse_songfile(data: &Vec<u8>) -> std::io::Result<RSSongFile> {
-    RSSongFile::parse(&data).map_err(|e| Error::new(ErrorKind::InvalidData, e))
+fn parse_songfile(data: &[u8]) -> std::io::Result<RSSongFile> {
+    RSSongFile::parse(data).map_err(|e| Error::new(ErrorKind::InvalidData, e))
 }
 
 /// Convert a PSARC song file into a Metalforge song file or files.
@@ -90,7 +90,7 @@ fn parse_song(song_file: RSSongFile) -> std::io::Result<Vec<Song>> {
     Ok(songs)
 }
 
-fn update_path(songs: &mut Vec<Song>, url: Url) -> () {
+fn update_path(songs: &mut [Song], url: Url) {
     songs.iter_mut().for_each(|song| song.path = url.clone());
 }
 

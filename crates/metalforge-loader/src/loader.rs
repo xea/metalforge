@@ -52,7 +52,7 @@ pub fn load_library(url: &Url) -> std::io::Result<SongLibrary> {
 pub fn load_song(song_url: &Url) -> std::io::Result<SongLibrary> {
     let mut library = SongLibrary::empty();
 
-    let song = load_song_header(&song_url)
+    let song = load_song_header(song_url)
     .map(|header| Song {
         header,
         path: song_url.clone()
