@@ -18,9 +18,10 @@ pub enum PlayerEvent {}
 struct PlayerState {}
 
 pub fn player_plugin(app: &mut App) {
-    app.add_systems(OnEnter(AppState::Player), setup_player)
-        .add_systems(
-            Update,
+    app
+        .add_event::<PlayerEvent>()
+        .add_systems(OnEnter(AppState::Player), setup_player)
+        .add_systems( Update,
             handle_player_events.run_if(in_state(AppState::Player)),
         )
         .add_systems(Update, handle_keyboard.run_if(in_state(AppState::Player)))

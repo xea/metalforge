@@ -241,9 +241,9 @@ mod tests {
 
     #[test]
     fn all_scanned_libraries_are_merged_together() {
-        Builder::new()
-            .filter(None, LevelFilter::max())
-            .init();
+        // Builder::new()
+        //     .filter(None, LevelFilter::max())
+        //     .init();
 
         let library_result = scan_libraries(&vec![ "../../library".to_string() ]);
 
