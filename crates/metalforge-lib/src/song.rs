@@ -1,3 +1,6 @@
+use std::fs::File;
+use std::io::BufReader;
+use crate::track::Track;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -22,6 +25,19 @@ impl Song {
         self.header.arrangements.push(other);
         self
     }
+
+    pub fn load_track(&self, arrangement: &Arrangement) -> Result<Track, ()> {
+        let mut file_path = self.path.to_file_path().expect("Failed to convert URL to file path");
+        file_path.pop();
+        file_path.push(format!("arrangement_{}.yaml", arrangement.id.as_str()));
+
+        let reader = BufReader::new(File::open(file_path)
+            .expect("Failed to open track file: {}"));
+        let content = serde_yaml::from_reader(reader)
+            .expect("Failed to parse track file: {}");
+
+        Ok(content)
+    }
 }
 
 #[derive(Debug, Hash, PartialOrd, PartialEq, Eq, Serialize, Deserialize)]
@@ -42,38 +58,18 @@ pub struct SongHeader {
 #[derive(Debug, Hash, PartialOrd, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Arrangement {
+    pub id: String,
     pub name: String,
     pub instrument: Instrument,
+
 }
+
 
 #[derive(Debug, Hash, PartialOrd, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Instrument {
-    /// 6-string guitar
-    Guitar6,
+    ElectricBass,
+    AcousticGuitar,
+    ElectricGuitar,
 }
 
-#[derive(Debug)]
-pub enum PitchClass {
-    C,
-    CSharp,
-    CFlat,
-    D,
-    DSharp,
-    DFlat,
-    E,
-    ESharp,
-    EFlat,
-    F,
-    FSharp,
-    FFlat,
-    G,
-    GSharp,
-    GFlat,
-    A,
-    ASharp,
-    AFlat,
-    B,
-    BSharp,
-    BFlat,
-}

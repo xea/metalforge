@@ -9,23 +9,15 @@ const DEFAULT_URL: &str = "file:///";
 const ARRANGEMENT_VOCALS: &str = "Vocals";
 
 pub(crate) fn load_psarc(url: &Url) -> std::io::Result<SongLibrary> {
-    let mut library = SongLibrary::empty();
-
     let bytes = load_file_contents(url)?;
     let songs = load_song_from_psarc(&bytes, url)?;
 
-    songs.into_iter().for_each(|song| library.add_song(song));
-
-    Ok(library)
+    Ok(SongLibrary::from(songs))
 }
 
 fn load_song_from_psarc(bytes: &[u8], url: &Url) -> std::io::Result<Vec<Song>> {
     parse_songfile(bytes)
-        .and_then(parse_song)
-        .map(|mut songs| {
-            update_path(&mut songs, url.clone());
-            songs
-        })
+        .and_then(|song_file| parse_song(song_file, url))
 }
 
 /// Attempt to parse the raw contents of a file as a PSARC song or return with an error in case of
@@ -35,7 +27,7 @@ fn parse_songfile(data: &[u8]) -> std::io::Result<RSSongFile> {
 }
 
 /// Convert a PSARC song file into a Metalforge song file or files.
-fn parse_song(song_file: RSSongFile) -> std::io::Result<Vec<Song>> {
+fn parse_song(song_file: RSSongFile, file_url: &Url) -> std::io::Result<Vec<Song>> {
     let mut songs: Vec<Song> = vec![];
 
     for manifest in song_file.manifests.iter() {
@@ -49,9 +41,10 @@ fn parse_song(song_file: RSSongFile) -> std::io::Result<Vec<Song>> {
                 && candidate.header.year == attributes.song_year
         });
 
-        let instrument = Instrument::Guitar6;
+        let instrument = Instrument::ElectricGuitar;
 
         let arrangement = Arrangement {
+            id: attributes.arrangement_name.to_string(),
             name: attributes.arrangement_name.to_string(),
             instrument,
         };
@@ -78,7 +71,7 @@ fn parse_song(song_file: RSSongFile) -> std::io::Result<Vec<Song>> {
                     length_sec: attributes.song_length as u16,
                     arrangements: vec![arrangement],
                 },
-                path: Url::parse(DEFAULT_URL).unwrap(),
+                path: file_url.clone(),
             };
 
             songs.push(song);
@@ -86,10 +79,6 @@ fn parse_song(song_file: RSSongFile) -> std::io::Result<Vec<Song>> {
     }
 
     Ok(songs)
-}
-
-fn update_path(songs: &mut [Song], url: Url) {
-    songs.iter_mut().for_each(|song| song.path = url.clone());
 }
 
 #[cfg(test)]

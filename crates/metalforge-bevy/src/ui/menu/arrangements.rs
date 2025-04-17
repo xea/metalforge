@@ -6,8 +6,8 @@ use bevy::prelude::{Commands, Component, Res, ResMut};
 pub struct OnArrangements;
 
 pub fn setup_arrangement(
-    mut commands: Commands,
-    mut menu_state: ResMut<MenuState>,
+    commands: Commands,
+    menu_state: ResMut<MenuState>,
     library: Res<LibraryView>,
 ) {
     let mut menu_items = vec![];

@@ -1,9 +1,11 @@
 [package]
 name = "metalforge-cli"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 metalforge-lib = { path = "../metalforge-lib" }
-metalforge-cpal = { path = "../metalforge-cpal" }
+metalforge-loader = { path = "../metalforge-loader" }
 ratatui = "0.29"
+url = "2.5.4"
+serde_yaml = "0.9.33"

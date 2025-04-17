@@ -1,4 +1,5 @@
 use bevy::prelude::{Resource, States};
+use metalforge_lib::engine::Engine;
 use metalforge_lib::library::SongLibrary;
 use metalforge_lib::song::Song;
 // use metalforge_loader::explorer::SongRef;
@@ -16,16 +17,15 @@ pub enum AppState {
     Player,
 }
 
+#[derive(Resource)]
+pub struct EngineView(pub Engine);
+
 #[derive(Resource, Debug)]
 pub struct LibraryView {
     song_library: SongLibrary,
 }
 
 impl LibraryView {
-    pub(crate) fn new(song_library: SongLibrary) -> Self {
-        Self { song_library }
-    }
-
     pub fn iter(&self) -> impl Iterator<Item = &Song> {
         self.song_library.iter()
     }
@@ -36,3 +36,4 @@ impl From<SongLibrary> for LibraryView {
         Self { song_library }
     }
 }
+

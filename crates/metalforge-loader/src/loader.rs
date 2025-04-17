@@ -50,17 +50,17 @@ pub fn load_library(url: &Url) -> std::io::Result<SongLibrary> {
 }
 
 pub fn load_song(song_url: &Url) -> std::io::Result<SongLibrary> {
-    let mut library = SongLibrary::empty();
+    let mut songs = vec![];
 
     let song = load_song_header(song_url)
     .map(|header| Song {
         header,
-        path: song_url.clone()
+        path: song_url.clone(),
     })?;
 
-    library.add_song(song);
+    songs.push(song);
 
-    Ok(library)
+    Ok(SongLibrary::from(songs))
 }
 
 pub fn load_song_header(url: &Url) -> std::io::Result<SongHeader> {
@@ -69,7 +69,6 @@ pub fn load_song_header(url: &Url) -> std::io::Result<SongHeader> {
     serde_yaml::from_slice(bytes.as_slice())
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
 }
-
 
 fn load_library_def(url: &Url) -> std::io::Result<LibraryDef> {
     let bytes = load_file_contents(url)?;

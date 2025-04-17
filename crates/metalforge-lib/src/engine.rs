@@ -1,11 +1,83 @@
+use std::time::Duration;
+use cpal::{Device, FromSample, InputCallbackInfo, OutputCallbackInfo, Sample, SampleFormat, StreamConfig, StreamError, SupportedStreamConfig};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{
-    Device, FromSample, InputCallbackInfo, Sample, SampleFormat, StreamError, SupportedStreamConfig,
-};
+use fundsp::hacker::{hammond_hz, midi_hz, organ_hz, sine_hz, AudioUnit};
+use spectrum_analyzer::{samples_fft_to_spectrum, FrequencyLimit, FrequencySpectrum};
 use spectrum_analyzer::scaling::divide_by_N_sqrt;
 use spectrum_analyzer::windows::hann_window;
-use spectrum_analyzer::{samples_fft_to_spectrum, FrequencyLimit, FrequencySpectrum};
-use std::time::Duration;
+
+#[derive(Default)]
+pub struct Engine;
+
+impl Engine {
+    pub fn start(&mut self) {
+        let default_host = cpal::default_host();
+        let all_host_ids = cpal::available_hosts();
+
+        // Debug info
+        for host_id in all_host_ids {
+            println!("Host: {}", host_id.name())
+        }
+    }
+
+    pub fn stop(&mut self) {
+
+    }
+}
+
+pub fn run_dsp() {
+    let host = cpal::default_host();
+
+    let device_out = host
+        .default_output_device()
+        .expect("No output device is available");
+
+    let config = device_out
+        .default_output_config()
+        .expect("No default output device is available");
+
+    run_dsp0(&device_out, &config.into());
+}
+
+fn run_dsp0(device: &Device, config: &StreamConfig) {
+
+    let sample_rate = config.sample_rate.0 as f64;
+    let channels = config.channels as usize;
+
+    //let mut c = 0.2 * (organ_hz(midi_hz(57.0)) + organ_hz(midi_hz(61.0)) + organ_hz(midi_hz(64.0)));
+    //let mut c = hammond_hz(57.0) + hammond_hz(midi_hz(61.0)) + hammond_hz(midi_hz(64.0));
+
+    let mut c = sine_hz(440.0);
+
+    c.set_sample_rate(sample_rate);
+    c.allocate();
+
+    let mut next_value = move || c.get_stereo();
+
+    let err_fn = |err| eprintln!("Error on stream: {}", err);
+
+    let stream = device.build_output_stream(config, move |output: &mut [f32], _: &OutputCallbackInfo| {
+        // write_data
+        for frame in output.chunks_mut(channels) {
+            let sample = next_value();
+            let left = f32::from_sample(sample.0);
+            let right = f32::from_sample(sample.1);
+
+            for (channel, sample) in frame.iter_mut().enumerate() {
+                if channel & 1 == 0 {
+                    *sample = left;
+                } else {
+                    *sample = right;
+                }
+            }
+        }
+    },
+    err_fn,
+    None).expect("Failed to build output stream");
+    let _ = stream.play().expect("Failed to play stream");
+
+    std::thread::sleep(Duration::from_millis(50000));
+}
 
 pub fn run_demo() {
     let host = cpal::default_host();

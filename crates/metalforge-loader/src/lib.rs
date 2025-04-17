@@ -1,5 +1,6 @@
 mod loader;
 mod smither;
+pub mod converter;
 
 use crate::loader::{load_library, load_song};
 use crate::smither::load_psarc;
@@ -136,7 +137,7 @@ fn scan_library_dir_entry(url: &Url) -> std::io::Result<SongLibrary> {
                 return load_song(url);
             }
             _ => {
-                // Filename wasn't a known one, look for known extensions
+                // Filename wasn't known, look for known extensions
                 if let Some(extension) = entry_path.extension().and_then(OsStr::to_str) {
                     match extension {
                         EXT_MFLIB => {

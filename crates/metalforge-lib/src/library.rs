@@ -12,10 +12,6 @@ impl SongLibrary {
         Self { songs: Vec::new() }
     }
 
-    pub fn add_song(&mut self, song: Song) {
-        self.songs.push(song);
-    }
-
     pub fn song(&self, idx: usize) -> Option<&Song> {
         self.songs.get(idx)
     }
@@ -46,18 +42,21 @@ mod tests {
     #[test]
     fn merging_two_libraries_moves_the_songs_in_other_to_self() {
         let songs = vec![
-            Song { header: SongHeader {
-                title: "Test Song".to_string(),
-                title_sort: "Test Song, The".to_string(),
-                album: "Album".to_string(),
-                album_sort: "Album, The".to_string(),
-                artist: "Artist".to_string(),
-                artist_sort: "Artist, The".to_string(),
-                year: 2024,
-                version: 1,
-                length_sec: 30,
-                arrangements: vec![],
-            }, path: Url::parse("http://localhost").unwrap() }
+            Song {
+                header: SongHeader {
+                    title: "Test Song".to_string(),
+                    title_sort: "Test Song, The".to_string(),
+                    album: "Album".to_string(),
+                    album_sort: "Album, The".to_string(),
+                    artist: "Artist".to_string(),
+                    artist_sort: "Artist, The".to_string(),
+                    year: 2024,
+                    version: 1,
+                    length_sec: 30,
+                    arrangements: vec![],
+                },
+                path: Url::parse("http://localhost").unwrap(),
+            }
         ];
         let mut library = SongLibrary::empty();
         let mut other = SongLibrary::from(songs);

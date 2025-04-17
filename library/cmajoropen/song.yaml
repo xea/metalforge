@@ -21,6 +21,6 @@ songVersion: 1
 lengthSec: 120
 # List of arrangements, one entry for each, e.g. rhythm guitar,
 arrangements:
-  - name: Guitar (6-string)
-    instrument: guitar6
-    path: 6string_guitar
+  - id: 6string_guitar
+    name: Guitar (6-string)
+    instrument: electricGuitar

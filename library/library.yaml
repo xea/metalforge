@@ -1,3 +1,5 @@
 ---
 songs:
   - path: cmajoropen
+  - path: ../examples/Test-Artist_Test-Song_v1_p.psarc
+  - path: Metallica-For_Whom_the_Bell_TollsFor_Whom_the_Bell_Tolls
