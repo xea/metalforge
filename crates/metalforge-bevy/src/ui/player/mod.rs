@@ -51,8 +51,8 @@ fn setup_player(
         .get(menu_state.selected_arrangement_idx)
         .expect("Unable to find selected arrangement");
 
-    let track = song.load_track(&arrangement)
-        .expect("Failed to load track");
+    let part = song.load_instrument_part(&arrangement)
+        .expect("Failed to load instrument part");
 
     // Text 2D
     let font = asset_server.load("fonts/FiraMono-Medium.ttf");
@@ -71,7 +71,7 @@ fn setup_player(
     const BOX_WIDTH: f32 = 15.0;
     const BOX_HEIGHT: f32 = 30.0;
 
-    for note in &track.notes {
+    for note in &part.notes {
         let box_size = Vec2::new(BOX_WIDTH, BOX_HEIGHT);
         let string = note.string as f32 * BOX_HEIGHT;
 
@@ -160,7 +160,7 @@ fn scroll_nodes(mut query: Query<&mut Transform, With<Note2d>>, _time: Res<Time>
 }
 
 fn move_cursor(mut query: Query<&mut Transform, With<Cursor>>, player_state: Res<PlayerState>) {
-    let Ok(mut cursor) = query.get_single_mut() else {
+    let Ok(mut cursor) = query.single_mut() else {
         return;
     };
 
@@ -170,7 +170,7 @@ fn move_cursor(mut query: Query<&mut Transform, With<Cursor>>, player_state: Res
 }
 
 fn move_camera(mut query: Query<&mut Transform, With<Camera2d>>, player_state: Res<PlayerState>) {
-    let Ok(mut camera) = query.get_single_mut() else {
+    let Ok(mut camera) = query.single_mut() else {
         return;
     };
 

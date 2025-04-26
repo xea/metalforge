@@ -4,6 +4,7 @@ use metalforge_lib::song::{Arrangement, Instrument, Song, SongHeader};
 use rockysmithereens_parser::SongFile as RSSongFile;
 use std::io::{Error, ErrorKind, };
 use url::Url;
+use metalforge_lib::song::Tuning::Standard;
 
 const DEFAULT_URL: &str = "file:///";
 const ARRANGEMENT_VOCALS: &str = "Vocals";
@@ -46,6 +47,7 @@ fn parse_song(song_file: RSSongFile, file_url: &Url) -> std::io::Result<Vec<Song
             id: attributes.arrangement_name.to_string(),
             name: attributes.arrangement_name.to_string(),
             instrument,
+            tuning: Some(Standard)
         };
 
         if let Some(candidate) = candidate_result {

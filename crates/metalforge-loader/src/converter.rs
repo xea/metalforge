@@ -3,9 +3,10 @@ use metalforge_lib::song::{Arrangement, Instrument, Song, SongHeader};
 use rockysmithereens_parser::SongFile as RSSongFile;
 use std::io::{Error, ErrorKind};
 use url::Url;
-use metalforge_lib::track::{Duration, Note, PitchClass, Track};
+use metalforge_lib::song::Tuning::Standard;
+use metalforge_lib::part::{Duration, Note, PitchClass, InstrumentPart};
 
-pub fn convert_psarc_to_mfsong(url: Url, data: &[u8]) -> std::io::Result<(Song, Vec<Track>)> {
+pub fn convert_psarc_to_mfsong(url: Url, data: &[u8]) -> std::io::Result<(Song, Vec<InstrumentPart>)> {
     let psarc = RSSongFile::parse(data)
         .map_err(|_rs| Error::from(ErrorKind::InvalidData))?;
 
@@ -25,7 +26,7 @@ pub fn convert_psarc_to_mfsong(url: Url, data: &[u8]) -> std::io::Result<(Song, 
         path: url,
     };
 
-    let mut tracks = vec![];
+    let mut parts = vec![];
 
     for (idx, manifest) in psarc.manifests.iter().enumerate() {
         let attributes = manifest.attributes();
@@ -80,12 +81,14 @@ pub fn convert_psarc_to_mfsong(url: Url, data: &[u8]) -> std::io::Result<(Song, 
                 id: attributes.full_name.to_string(),
                 name: attributes.arrangement_name.to_string(),
                 instrument,
+                tuning: Some(Standard)
             };
 
             song.header.arrangements.push(arrangement);
 
             for level in &rs_song.levels {
-                let mut track = Track {
+                let mut part = InstrumentPart {
+                    id: "instrument_id".to_string(),
                     name: format!("{}_diff_{}", attributes.full_name.to_string(), level.difficulty),
                     notes: vec![],
                 };
@@ -95,7 +98,7 @@ pub fn convert_psarc_to_mfsong(url: Url, data: &[u8]) -> std::io::Result<(Song, 
                 // Tuning pitch
 
                 for note in &level.notes {
-                    track.notes.push(Note {
+                    part.notes.push(Note {
                         class: PitchClass::E,
                         octave: 0,
                         time: note.time * 10.0,
@@ -107,7 +110,7 @@ pub fn convert_psarc_to_mfsong(url: Url, data: &[u8]) -> std::io::Result<(Song, 
                     });
                 }
 
-                tracks.push(track);
+                parts.push(part);
             }
         }
     }
@@ -130,7 +133,7 @@ pub fn convert_psarc_to_mfsong(url: Url, data: &[u8]) -> std::io::Result<(Song, 
     }
 
      */
-    Ok((song, tracks))
+    Ok((song, parts))
 }
 
 

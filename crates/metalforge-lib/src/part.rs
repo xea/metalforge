@@ -1,15 +1,18 @@
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
-/// A track contains the recorded music of a given instrument in a specific
+/// An instrument contains the data for the recorded music of a given instrument in a specific
 /// arrangement.
 #[derive(Serialize, Deserialize)]
-pub struct Track {
+pub struct InstrumentPart {
+    pub id: String,
     pub name: String,
+    // TODO
+    // capo
     pub notes: Vec<Note>
 }
 
-impl Track {
+impl InstrumentPart {
 }
 
 #[derive(Serialize, Deserialize)]
@@ -29,7 +32,7 @@ pub struct Note {
     pub fret: u8,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Hash, Eq, PartialOrd, PartialEq, Serialize, Deserialize)]
 pub enum PitchClass {
     #[serde(rename = "c")]
     C,

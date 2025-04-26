@@ -11,7 +11,7 @@ pub struct Engine;
 
 impl Engine {
     pub fn start(&mut self) {
-        let default_host = cpal::default_host();
+        let _default_host = cpal::default_host();
         let all_host_ids = cpal::available_hosts();
 
         // Debug info
@@ -117,18 +117,18 @@ pub fn run_demo() {
     println!("Recording is complete");
 }
 
-fn data_callback<T>(data: &[T], _input_callback_info: &InputCallbackInfo)
+fn _data_callback<T>(data: &[T], _input_callback_info: &InputCallbackInfo)
 where
     T: Sample,
 {
-    handle_input::<T, T>(data);
+    _handle_input::<T, T>(data);
 }
 
 fn data_callback_f32(data: &[f32], _input_callback_info: &InputCallbackInfo) {
     handle_input_f32(data);
 }
 
-fn handle_input<T, U>(input: &[T])
+fn _handle_input<T, U>(input: &[T])
 where
     T: Sample,
     U: Sample + FromSample<T>,
@@ -158,7 +158,7 @@ fn handle_input_f32(input: &[f32]) {
     }
 }
 
-fn process_spectrum(spectrum: &FrequencySpectrum) {
+fn process_spectrum(_spectrum: &FrequencySpectrum) {
     // print!("{}Max: {:10} {:10}", termion::cursor::Goto(1, 1), spectrum.max().0, spectrum.max_fr().val());
 }
 
