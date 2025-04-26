@@ -18,6 +18,8 @@ impl Engine {
         for host_id in all_host_ids {
             println!("Host: {}", host_id.name())
         }
+
+
     }
 
     pub fn stop(&mut self) {
@@ -74,7 +76,9 @@ fn run_dsp0(device: &Device, config: &StreamConfig) {
     },
     err_fn,
     None).expect("Failed to build output stream");
-    let _ = stream.play().expect("Failed to play stream");
+
+    // Fail catastrophically if playing does not start
+    stream.play().expect("Failed to play stream");
 
     std::thread::sleep(Duration::from_millis(50000));
 }

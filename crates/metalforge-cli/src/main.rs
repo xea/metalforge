@@ -1,12 +1,11 @@
+use metalforge_lib::part::{Duration, InstrumentPart, Note, PitchClass};
+use metalforge_lib::song::{Arrangement, Instrument, Song, SongHeader, Tuning};
 use std::env::args;
 use std::fs::{exists, DirBuilder, File};
 use std::io::{BufReader, BufWriter, Error, ErrorKind, Read};
 use std::path::Path;
-use metalforge_loader::converter::convert_psarc_to_mfsong;
 use url::Url;
-use metalforge_lib::song::{Arrangement, Instrument, Song, SongHeader, Tuning};
-use metalforge_lib::song::Tuning::Standard;
-use metalforge_lib::part::{Duration, InstrumentPart, Note, PitchClass};
+use metalforge_loader::converter::convert_psarc_to_mfsong;
 
 enum Action {
     GenerateConfig,
@@ -124,7 +123,7 @@ fn generate_sample_song() {
         .and_then(|_| {
             instrument_parts.iter().fold(Ok(None), |error, part| {
                 if let Ok(_) = error {
-                    let filename = format!("examples/sample_song/part_{}.yaml", "test_part");
+                    let filename = format!("examples/sample_song/arrangement_{}.yaml", "test_part");
 
                     exists(&filename)
                         .and_then(|exists| match exists {

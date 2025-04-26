@@ -1,11 +1,12 @@
 use crate::ui::menu::{MenuEvent, MenuState};
-use crate::ui::{AppState, LibraryView};
+use crate::ui::{AppState, EngineView, LibraryView};
 use bevy::app::AppExit;
 use bevy::color::palettes::basic::{PURPLE, RED};
 use bevy::input::ButtonInput;
 use bevy::prelude::{default, in_state, App, AssetServer, Assets, Camera2d, Color, ColorMaterial, Commands, Component, Event, EventReader, EventWriter, IntoScheduleConfigs, KeyCode, Mesh, Mesh2d, MeshMaterial2d, NextState, OnEnter, Query, Rectangle, Res, ResMut, Resource, Sprite, State, Text2d, TextFont, Time, Transform, Update, Vec2, Vec3, With};
 use bevy::text::TextBounds;
 
+/// `PlayerEvent` describes the various events that may happen during song play.
 #[derive(Event, Copy, Clone)]
 pub enum PlayerEvent {
     ResumeSong,
@@ -130,6 +131,7 @@ fn handle_keyboard(
 fn handle_player_events(
     mut events: EventReader<PlayerEvent>,
     mut player_state: ResMut<PlayerState>,
+    mut engine: ResMut<EngineView>,
     mut app_state: ResMut<NextState<AppState>>,
     mut app_exit_events: EventWriter<AppExit>,
 ) {
@@ -137,9 +139,11 @@ fn handle_player_events(
         match event {
             PlayerEvent::ResumeSong => {
                 player_state.song_playing = true;
+                engine.0.start()
             }
             PlayerEvent::PauseSong => {
                 player_state.song_playing = false;
+                engine.0.stop()
             }
         }
     }

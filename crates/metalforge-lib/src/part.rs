@@ -30,6 +30,18 @@ pub struct Note {
     pub string: u8,
     // 0 - open string, 12 - octave up
     pub fret: u8,
+
+    // Other possible stuff
+    // vibrato
+    // harmonics
+    // tremolo_pick
+    // dynamics
+    // let sustain = note.sustain;
+    // let chord = note.chord;
+    // let bend = note.bend;
+    // let mute = note.mute;
+    // let show = note.show;
+    // let slide_to_next = note.slide_to_next;
 }
 
 #[derive(Debug, Hash, Eq, PartialOrd, PartialEq, Serialize, Deserialize)]

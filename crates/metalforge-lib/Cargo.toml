@@ -7,10 +7,12 @@ edition = "2024"
 
 [dependencies]
 cpal = "0.15"
-fundsp = "*"
+fundsp = "0.20"
+hocon = "0.9"
 spectrum-analyzer = "1.6"
 #easyfft = "0.4"
 #qdft = "0.1"
+ogg = "0.9"
 url = "2.5"
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.9.33"

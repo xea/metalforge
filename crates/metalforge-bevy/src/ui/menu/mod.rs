@@ -10,11 +10,12 @@ use crate::ui::menu::song_library::{setup_song_library, OnSongLibrary};
 use crate::ui::AppState;
 use bevy::app::{App, AppExit, Update};
 use bevy::color::Color;
+use bevy::color::palettes::basic::RED;
 use bevy::input::ButtonInput;
 use bevy::prelude::{default, in_state, Changed, Commands, Component, Entity, Event, EventReader, EventWriter, IntoScheduleConfigs, KeyCode, NextState, OnEnter, OnExit, Query, Res, ResMut, Resource, State, With};
 use bevy::text::TextColor;
 use bevy_ui::prelude::{Button, Text};
-use bevy_ui::{FlexDirection, Interaction, Node, Val};
+use bevy_ui::{BackgroundColor, FlexDirection, Interaction, Node, TextShadow, Val};
 
 pub const NORMAL_COLOR: Color = Color::srgb(1., 1., 1.);
 pub const HOVERED_COLOR: Color = Color::srgb(0.6, 0.6, 1.);
@@ -321,7 +322,9 @@ pub(crate) fn setup_menu<T: Component>(
 
             // Create a button for each menu item, highlighting the first element in the list
             for menu_item in menu_items.into_iter() {
-                let text_color = if menu_item.idx.0 == state.selected_idx {
+                let selected = menu_item.idx.0 == state.selected_idx;
+
+                let text_color = if selected {
                     HOVERED_COLOR
                 } else {
                     NORMAL_COLOR
@@ -332,8 +335,8 @@ pub(crate) fn setup_menu<T: Component>(
                     menu_item.idx,
                     menu_item.event,
                     Text(menu_item.title),
+                    TextShadow::default(),
                     TextColor(text_color),
-                    //BackgroundColor(Color::from(RED)),
                     Node {
                         width: Val::Percent(70.0),
                         ..default()
