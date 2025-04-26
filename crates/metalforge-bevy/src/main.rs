@@ -4,10 +4,9 @@ mod ui;
 use crate::config::{AppConfig, WindowType};
 use crate::ui::{AppState, EngineView, LibraryView};
 use bevy::prelude::{App, AppExtStates, Camera2d, Commands, Startup};
-use bevy::sprite::Wireframe2dPlugin;
 use bevy::winit::WinitSettings;
 use bevy::DefaultPlugins;
-use metalforge_lib::engine::{Engine};
+use metalforge_lib::engine::Engine;
 use metalforge_loader::scan_libraries;
 use std::env::current_dir;
 
@@ -60,7 +59,7 @@ fn init_app(cfg: &AppConfig) -> App {
     app.add_plugins((ui::menu::menu_plugin, ui::player::player_plugin));
 
     if cfg.display.wireframe {
-        app.add_plugins(Wireframe2dPlugin);
+        // app.add_plugins(Wireframe2dPlugin);
     }
 
     // Display mode

@@ -10,13 +10,8 @@ use crate::ui::menu::song_library::{setup_song_library, OnSongLibrary};
 use crate::ui::AppState;
 use bevy::app::{App, AppExit, Update};
 use bevy::color::Color;
-use bevy::hierarchy::{BuildChildren, ChildBuild, DespawnRecursiveExt};
 use bevy::input::ButtonInput;
-use bevy::prelude::{
-    default, in_state, Changed, Commands, Component, Entity, Event, EventReader, EventWriter,
-    IntoSystemConfigs, KeyCode, NextState, OnEnter, OnExit, Query, Res, ResMut, Resource, State,
-    With,
-};
+use bevy::prelude::{default, in_state, Changed, Commands, Component, Entity, Event, EventReader, EventWriter, IntoScheduleConfigs, KeyCode, NextState, OnEnter, OnExit, Query, Res, ResMut, Resource, State, With};
 use bevy::text::TextColor;
 use bevy_ui::prelude::{Button, Text};
 use bevy_ui::{FlexDirection, Interaction, Node, Val};
@@ -66,7 +61,7 @@ pub fn menu_plugin(app: &mut App) {
         );
 }
 
-#[derive(Event, Copy, Clone, Default)]
+#[derive(Event, Component, Copy, Clone, Default)]
 pub enum MenuEvent {
     #[default]
     OpenMainMenu,
@@ -354,7 +349,7 @@ mod tests {
     use crate::ui::AppState;
     use bevy::app::Update;
     use bevy::input::ButtonInput;
-    use bevy::prelude::{in_state, App, AppExtStates, IntoSystemConfigs, KeyCode};
+    use bevy::prelude::{App, AppExtStates, KeyCode};
     use bevy::state::app::StatesPlugin;
 
     #[test]

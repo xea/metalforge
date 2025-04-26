@@ -3,12 +3,7 @@ use crate::ui::{AppState, LibraryView};
 use bevy::app::AppExit;
 use bevy::color::palettes::basic::{PURPLE, RED};
 use bevy::input::ButtonInput;
-use bevy::prelude::{
-    default, in_state, App, AssetServer, Assets, BuildChildren, Camera2d, ChildBuild, Color,
-    ColorMaterial, Commands, Component, Event, EventReader, EventWriter, IntoSystemConfigs,
-    KeyCode, Mesh, Mesh2d, MeshMaterial2d, NextState, OnEnter, Query, Rectangle, Res, ResMut,
-    Resource, Sprite, State, Text2d, TextFont, Time, Transform, Update, Vec2, Vec3, With,
-};
+use bevy::prelude::{default, in_state, App, AssetServer, Assets, Camera2d, Color, ColorMaterial, Commands, Component, Event, EventReader, EventWriter, IntoScheduleConfigs, KeyCode, Mesh, Mesh2d, MeshMaterial2d, NextState, OnEnter, Query, Rectangle, Res, ResMut, Resource, Sprite, State, Text2d, TextFont, Time, Transform, Update, Vec2, Vec3, With};
 use bevy::text::TextBounds;
 
 #[derive(Event, Copy, Clone)]
