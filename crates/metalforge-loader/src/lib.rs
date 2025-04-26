@@ -1,9 +1,9 @@
 mod loader;
-mod smither;
+mod psarc;
 pub mod converter;
 
 use crate::loader::{load_library, load_song};
-use crate::smither::load_psarc;
+use crate::psarc::load_psarc;
 use log::trace;
 use metalforge_lib::library::SongLibrary;
 use std::ffi::OsStr;

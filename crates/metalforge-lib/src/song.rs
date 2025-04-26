@@ -1,7 +1,7 @@
-use std::fs::File;
-use std::io::BufReader;
 use crate::track::Track;
 use serde::{Deserialize, Serialize};
+use std::fs::File;
+use std::io::BufReader;
 use url::Url;
 
 #[derive(Debug, Eq, PartialEq, PartialOrd)]

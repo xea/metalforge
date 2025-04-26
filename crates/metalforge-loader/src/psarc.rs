@@ -32,7 +32,6 @@ fn parse_song(song_file: RSSongFile, file_url: &Url) -> std::io::Result<Vec<Song
 
     for manifest in song_file.manifests.iter() {
         let attributes = manifest.attributes();
-        println!("{:#?}", attributes);
 
         let candidate_result = songs.iter_mut().find(|candidate| {
             candidate.header.artist == attributes.artist_name
@@ -84,7 +83,7 @@ fn parse_song(song_file: RSSongFile, file_url: &Url) -> std::io::Result<Vec<Song
 #[cfg(test)]
 mod tests {
     use crate::loader::load_file_contents;
-    use crate::smither::load_song_from_psarc;
+    use crate::psarc::load_song_from_psarc;
     use std::path::PathBuf;
     use url::Url;
 

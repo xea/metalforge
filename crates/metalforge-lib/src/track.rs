@@ -10,12 +10,6 @@ pub struct Track {
 }
 
 impl Track {
-    pub fn demo() -> Self {
-        Self {
-            name: "Demo".to_string(),
-            notes: vec![]
-        }
-    }
 }
 
 #[derive(Serialize, Deserialize)]

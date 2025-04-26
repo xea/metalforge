@@ -27,6 +27,7 @@ notes:
     bend: 1.0
     preBend: 1.0
     harmonic: false
+  - { class: fb, octave: 4, time: 1, velocity: 100, string: 1, fret: 0, duration: whole, dotted: false, vibrato: false, slideTo: f5, bend: 1.0, preBend: 1.0, harmonic: false }
 sections:
   - name: main
     notes:
