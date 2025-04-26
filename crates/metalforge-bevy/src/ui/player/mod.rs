@@ -34,8 +34,8 @@ pub fn player_plugin(app: &mut App) {
 
 fn setup_player(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut _meshes: ResMut<Assets<Mesh>>,
+    mut _materials: ResMut<Assets<ColorMaterial>>,
     asset_server: Res<AssetServer>,
     menu_state: Res<MenuState>,
     library: Res<LibraryView>,
@@ -111,7 +111,7 @@ fn handle_keyboard(
     if input.just_pressed(KeyCode::Escape) {
         match current_app_state.get() {
             AppState::Player => {
-                menu_events.send(MenuEvent::OpenMainMenu);
+                menu_events.write(MenuEvent::OpenMainMenu);
             }
             _ => {
                 println!("Ignored escape");
@@ -119,9 +119,9 @@ fn handle_keyboard(
         }
     } else if input.just_pressed(KeyCode::Space) {
         if player_state.song_playing {
-            player_events.send(PlayerEvent::PauseSong);
+            player_events.write(PlayerEvent::PauseSong);
         } else {
-            player_events.send(PlayerEvent::ResumeSong);
+            player_events.write(PlayerEvent::ResumeSong);
         }
     }
 }

@@ -2,7 +2,6 @@ use bevy::prelude::{Resource, States};
 use metalforge_lib::engine::Engine;
 use metalforge_lib::library::SongLibrary;
 use metalforge_lib::song::Song;
-// use metalforge_loader::explorer::SongRef;
 
 pub(crate) mod menu;
 pub(crate) mod player;

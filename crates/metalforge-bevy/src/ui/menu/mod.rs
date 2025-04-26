@@ -152,10 +152,10 @@ fn handle_menu_mouse(
     for (interaction, idx, event) in interactions.iter_mut() {
         match interaction {
             Interaction::Pressed => {
-                events.send(*event);
+                events.write(*event);
             }
             Interaction::Hovered => {
-                events.send(MenuEvent::FocusMenuItem(idx.0));
+                events.write(MenuEvent::FocusMenuItem(idx.0));
             }
             _ => { /* Ignore */ }
         }
@@ -172,22 +172,22 @@ fn handle_menu_keys(
         match current_app_state.get() {
             AppState::MainMenu => {
                 menu_state.pop();
-                events.send(MenuEvent::Quit);
+                events.write(MenuEvent::Quit);
             }
             AppState::SettingsMenu => {
                 menu_state.pop();
-                events.send(MenuEvent::OpenMainMenu);
+                events.write(MenuEvent::OpenMainMenu);
             }
             AppState::SongLibrary => {
                 menu_state.pop();
-                events.send(MenuEvent::OpenMainMenu);
+                events.write(MenuEvent::OpenMainMenu);
             }
             AppState::Player => {
                 unimplemented!()
             }
             AppState::Arrangements => {
                 menu_state.pop();
-                events.send(MenuEvent::Play);
+                events.write(MenuEvent::Play);
             }
         }
     } else if input.just_pressed(KeyCode::Enter) {
@@ -200,11 +200,11 @@ fn handle_menu_keys(
             }
             _ => {}
         }
-        events.send(menu_state.current_action);
+        events.write(menu_state.current_action);
     } else if input.just_pressed(KeyCode::ArrowDown) {
-        events.send(MenuEvent::NextMenuItem);
+        events.write(MenuEvent::NextMenuItem);
     } else if input.just_pressed(KeyCode::ArrowUp) {
-        events.send(MenuEvent::PrevMenuItem);
+        events.write(MenuEvent::PrevMenuItem);
     }
 }
 
@@ -245,7 +245,7 @@ fn handle_menu_events(
             }
             MenuEvent::Quit => {
                 println!("Exiting app...");
-                app_exit_events.send(AppExit::Success);
+                app_exit_events.write(AppExit::Success);
             }
             MenuEvent::Todo => {
                 println!("TODO: Feature not implemented yet");
@@ -265,7 +265,7 @@ fn handle_menu_events(
 
 fn despawn_screen<T: Component>(mut commands: Commands, query: Query<Entity, With<T>>) {
     for entity in query.iter() {
-        commands.entity(entity).despawn_recursive();
+        commands.entity(entity).despawn();
     }
 }
 

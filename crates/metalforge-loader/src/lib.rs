@@ -164,8 +164,6 @@ fn scan_library_dir_entry(url: &Url) -> std::io::Result<SongLibrary> {
 #[cfg(test)]
 mod tests {
     use crate::{build_url, scan_libraries, scan_library_url};
-    use env_logger::Builder;
-    use log::LevelFilter;
     use std::path;
     use url::Url;
 
