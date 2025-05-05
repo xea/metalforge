@@ -6,13 +6,16 @@ edition = "2024"
 [lib]
 
 [dependencies]
+rockysmithereens_parser = { git = "https://github.com/tversteeg/rockysmithereens.git", features = [ "profile-with-tracing" ] }
 cpal = "0.15"
+#easyfft = "0.4"
+env_logger = "0.11"
 fundsp = "0.20"
 hocon = "0.9"
-spectrum-analyzer = "1.6"
-#easyfft = "0.4"
-#qdft = "0.1"
+log = "0.4"
 ogg = "0.9"
 url = "2.5"
-serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.9.33"
+serde = { version = "1.0", features = ["derive"] }
+#qdft = "0.1"
+spectrum-analyzer = "1.6"

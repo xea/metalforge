@@ -1,7 +1,7 @@
 use crate::song::Song;
 
 /// `SongLibrary` manages a collection of loaded songs.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SongLibrary {
     songs: Vec<Song>,
 }
@@ -53,9 +53,12 @@ mod tests {
                     year: 2024,
                     version: 1,
                     length_sec: 30,
+                    cover_art_path: None,
+                    backing_track_path: None,
+                    song_preview_path: None,
                     arrangements: vec![],
                 },
-                path: Url::parse("http://localhost").unwrap(),
+                cover_art: None,
             }
         ];
         let mut library = SongLibrary::empty();

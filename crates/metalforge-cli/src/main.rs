@@ -2,10 +2,8 @@ use metalforge_lib::part::{Duration, InstrumentPart, Note, PitchClass};
 use metalforge_lib::song::{Arrangement, Instrument, Song, SongHeader, Tuning};
 use std::env::args;
 use std::fs::{exists, DirBuilder, File};
-use std::io::{BufReader, BufWriter, Error, ErrorKind, Read};
+use std::io::{BufWriter, Error, ErrorKind};
 use std::path::Path;
-use url::Url;
-use metalforge_loader::converter::convert_psarc_to_mfsong;
 
 enum Action {
     GenerateConfig,
@@ -232,14 +230,10 @@ fn load_psarc(items: Vec<String>) -> Vec<(Song, Vec<InstrumentPart>)>{
         if let Ok(path) = std::fs::canonicalize(item.as_str()) {
             if path.is_file() {
                 if let Ok(file) = File::open(path.clone()) {
-                    if let Ok(url) = Url::from_file_path(path) {
-                        if let Some(pair) = convert_file(url, file) {
-                            result.push(pair);
-                        } else {
-                            eprintln!("Failed to convert song");
-                        }
+                    if let Some(pair) = convert_file(file) {
+                        result.push(pair);
                     } else {
-                        eprintln!("Failed to convert path to URL");
+                        eprintln!("Failed to convert song");
                     }
                 } else {
                     eprintln!("Failed to open file: {}", item);
@@ -268,11 +262,12 @@ fn load_psarc(items: Vec<String>) -> Vec<(Song, Vec<InstrumentPart>)>{
     result
 }
 
-fn convert_file(url: Url, file: File) -> Option<(Song, Vec<InstrumentPart>)> {
+fn convert_file(file: File) -> Option<(Song, Vec<InstrumentPart>)> {
+    /*
     let mut reader = BufReader::new(file);
     let mut buffer = vec![];
     if let Ok(_) = reader.read_to_end(&mut buffer) {
-        if let Ok(result) = convert_psarc_to_mfsong(url, buffer.as_slice()) {
+        if let Ok(result) = convert_psarc_to_mfsong(buffer.as_slice()) {
             Some(result)
         } else {
             None
@@ -280,6 +275,9 @@ fn convert_file(url: Url, file: File) -> Option<(Song, Vec<InstrumentPart>)> {
     } else {
         None
     }
+    dd
+     */
+    unimplemented!()
 }
 /*
 fn render_sheet(song: &Song) {

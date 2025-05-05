@@ -5,7 +5,6 @@ edition = "2024"
 
 [dependencies]
 metalforge-lib = { path = "../metalforge-lib" }
-metalforge-loader = { path = "../metalforge-loader" }
 bevy = "0.16"
 bevy_picking = "0.15"
 bevy_reflect = "0.15"

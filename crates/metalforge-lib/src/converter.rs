@@ -1,12 +1,11 @@
-use std::cmp::max;
+use metalforge_lib::part::{Duration, InstrumentPart, Note, PitchClass};
+use metalforge_lib::song::Tuning::Standard;
 use metalforge_lib::song::{Arrangement, Instrument, Song, SongHeader};
 use rockysmithereens_parser::SongFile as RSSongFile;
 use std::io::{Error, ErrorKind};
-use url::Url;
-use metalforge_lib::song::Tuning::Standard;
-use metalforge_lib::part::{Duration, Note, PitchClass, InstrumentPart};
 
-pub fn convert_psarc_to_mfsong(url: Url, data: &[u8]) -> std::io::Result<(Song, Vec<InstrumentPart>)> {
+pub fn convert_psarc_to_mfsong(data: &[u8]) -> std::io::Result<(Song, Vec<InstrumentPart>)> {
+    /*
     let psarc = RSSongFile::parse(data)
         .map_err(|_rs| Error::from(ErrorKind::InvalidData))?;
 
@@ -23,7 +22,6 @@ pub fn convert_psarc_to_mfsong(url: Url, data: &[u8]) -> std::io::Result<(Song, 
             length_sec: 0,
             arrangements: vec![],
         },
-        path: url,
     };
 
     let mut parts = vec![];
@@ -114,6 +112,8 @@ pub fn convert_psarc_to_mfsong(url: Url, data: &[u8]) -> std::io::Result<(Song, 
             }
         }
     }
+    
+     */
 
     /*
     for note in song.notes_iter() {

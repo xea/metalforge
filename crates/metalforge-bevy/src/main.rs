@@ -2,23 +2,19 @@ mod config;
 mod ui;
 
 use crate::config::{AppConfig, WindowType};
-use crate::ui::{AppState, EngineView, LibraryView};
+use crate::ui::{AppState, EngineView};
 use bevy::prelude::{App, AppExtStates, Camera2d, Commands, Startup};
 use bevy::winit::WinitSettings;
 use bevy::DefaultPlugins;
-use metalforge_lib::engine::Engine;
-use metalforge_loader::scan_libraries;
+use metalforge_lib::engine::EngineBuilder;
 use std::env::current_dir;
 
 fn main() -> std::io::Result<()> {
     // Load configuration
     let cfg = load_config();
 
-    // Read songs from the library path
-    let library = build_library(&cfg.library.paths)?;
-
     // Initialise audio engine
-    let engine = init_engine();
+    let engine = init_engine(&cfg);
 
     // Initialise application
     let mut app = init_app(&cfg);
@@ -26,7 +22,6 @@ fn main() -> std::io::Result<()> {
     // Make app config available as a resource
     app.insert_resource(cfg);
     app.insert_resource(engine);
-    app.insert_resource(library);
 
     // Finally, run the main loop
     app.run();
@@ -34,8 +29,12 @@ fn main() -> std::io::Result<()> {
     Ok(())
 }
 
-fn init_engine() -> EngineView {
-    EngineView(Engine::default())
+fn init_engine(app_config: &AppConfig) -> EngineView {
+    let engine = EngineBuilder::default()
+        .with_library_paths(&app_config.library.paths)
+        .build();
+    
+    EngineView(engine)
 }
 
 fn load_config() -> AppConfig {
@@ -74,10 +73,4 @@ fn init_app(cfg: &AppConfig) -> App {
 
 fn setup(mut commands: Commands) {
     commands.spawn(Camera2d);
-}
-
-fn build_library(paths: &Vec<String>) -> std::io::Result<LibraryView> {
-    let song_library = scan_libraries(paths)?;
-
-    Ok(LibraryView::from(song_library))
 }

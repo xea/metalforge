@@ -1,15 +1,15 @@
 use crate::ui::menu::{setup_menu, MenuEvent, MenuItem, MenuState};
 //use crate::ui::menu::OnSongLibrary;
-use crate::ui::LibraryView;
+use crate::ui::{EngineView, LibraryView};
 use bevy::prelude::{Commands, Component, Res, ResMut};
 
 #[derive(Component)]
 pub struct OnSongLibrary;
 
-pub fn setup_song_library(commands: Commands, library: Res<LibraryView>, state: ResMut<MenuState>) {
+pub fn setup_song_library(commands: Commands, engine: Res<EngineView>, state: ResMut<MenuState>) {
     let mut menu_items = vec![];
 
-    for (idx, song) in library.iter().enumerate() {
+    for (idx, song) in engine.0.song_library.iter().enumerate() {
         let title = format!("{} by {}", song.header.title, song.header.artist);
         //let title = format!("{} by {} [{}]", song.song_info.title, song.song_info.artist, song.path.to_str().unwrap_or("[Unknown]"));
         let menu_item = MenuItem::from((idx, title, MenuEvent::ChooseSong(idx)));

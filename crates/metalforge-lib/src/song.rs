@@ -1,13 +1,10 @@
-use crate::part::InstrumentPart;
+use crate::asset::AssetId;
 use serde::{Deserialize, Serialize};
-use std::fs::File;
-use std::io::BufReader;
-use url::Url;
 
 #[derive(Debug, Eq, PartialEq, PartialOrd)]
 pub struct Song {
     pub header: SongHeader,
-    pub path: Url,
+    pub cover_art: Option<AssetId>,
 }
 
 impl Song {
@@ -24,19 +21,6 @@ impl Song {
     pub fn add_arrangement(&mut self, other: Arrangement) -> &Self {
         self.header.arrangements.push(other);
         self
-    }
-
-    pub fn load_instrument_part(&self, arrangement: &Arrangement) -> Result<InstrumentPart, ()> {
-        let mut file_path = self.path.to_file_path().expect("Failed to convert URL to file path");
-        file_path.pop();
-        file_path.push(format!("arrangement_{}.yaml", arrangement.id.as_str()));
-
-        let reader = BufReader::new(File::open(file_path)
-            .expect("Failed to open instrument part file: {}"));
-        let content = serde_yaml::from_reader(reader)
-            .expect("Failed to parse instrument part file: {}");
-
-        Ok(content)
     }
 }
 
@@ -58,6 +42,9 @@ pub struct SongHeader {
     // - Average BPM
     // - Composer
     // - Tuning offset (hz/cents)
+    pub cover_art_path: Option<String>,
+    pub backing_track_path: Option<String>,
+    pub song_preview_path: Option<String>,
     pub arrangements: Vec<Arrangement>,
 }
 

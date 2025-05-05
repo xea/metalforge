@@ -5,6 +5,7 @@ use bevy::color::palettes::basic::{PURPLE, RED};
 use bevy::input::ButtonInput;
 use bevy::prelude::{default, in_state, App, AssetServer, Assets, Camera2d, Color, ColorMaterial, Commands, Component, Event, EventReader, EventWriter, IntoScheduleConfigs, KeyCode, Mesh, Mesh2d, MeshMaterial2d, NextState, OnEnter, Query, Rectangle, Res, ResMut, Resource, Sprite, State, Text2d, TextFont, Time, Transform, Update, Vec2, Vec3, With};
 use bevy::text::TextBounds;
+use metalforge_lib::asset::{load_asset, load_instrument_part};
 
 /// `PlayerEvent` describes the various events that may happen during song play.
 #[derive(Event, Copy, Clone)]
@@ -39,9 +40,9 @@ fn setup_player(
     mut _materials: ResMut<Assets<ColorMaterial>>,
     asset_server: Res<AssetServer>,
     menu_state: Res<MenuState>,
-    library: Res<LibraryView>,
+    engine: Res<EngineView>,
 ) {
-    let song = library
+    let song = engine.0
         .song_library
         .song(menu_state.selected_song_idx)
         .expect("Unable to open selected song");
@@ -52,8 +53,10 @@ fn setup_player(
         .get(menu_state.selected_arrangement_idx)
         .expect("Unable to find selected arrangement");
 
-    let part = song.load_instrument_part(&arrangement)
-        .expect("Failed to load instrument part");
+
+    let asset_id = unimplemented!();
+
+    let part = load_instrument_part(&asset_id)?;
 
     // Text 2D
     let font = asset_server.load("fonts/FiraMono-Medium.ttf");

@@ -1,13 +1,39 @@
-use std::time::Duration;
-use cpal::{Device, FromSample, InputCallbackInfo, OutputCallbackInfo, Sample, SampleFormat, StreamConfig, StreamError, SupportedStreamConfig};
+use crate::library::SongLibrary;
+use crate::loader::scan_libraries;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use fundsp::hacker::{hammond_hz, midi_hz, organ_hz, sine_hz, AudioUnit};
-use spectrum_analyzer::{samples_fft_to_spectrum, FrequencyLimit, FrequencySpectrum};
+use cpal::{Device, FromSample, InputCallbackInfo, OutputCallbackInfo, Sample, SampleFormat, StreamConfig, StreamError, SupportedStreamConfig};
+use fundsp::hacker::{sine_hz, AudioUnit};
 use spectrum_analyzer::scaling::divide_by_N_sqrt;
 use spectrum_analyzer::windows::hann_window;
+use spectrum_analyzer::{samples_fft_to_spectrum, FrequencyLimit, FrequencySpectrum};
+use std::time::Duration;
 
 #[derive(Default)]
-pub struct Engine;
+pub struct EngineBuilder {
+    library_paths: Vec<String>
+}
+
+impl EngineBuilder {
+    pub fn with_library_paths(&mut self, paths: &[String]) -> &Self {
+        paths.iter().for_each(|path| self.library_paths.push(path.to_string()));
+        self
+    }
+
+    pub fn build(&self) -> Engine {
+        let song_library = scan_libraries(&self.library_paths)
+            .map(SongLibrary::from)
+            .unwrap_or_else(|_| SongLibrary::empty());
+
+        Engine {
+            song_library,
+        }
+    }
+}
+
+#[derive(Default)]
+pub struct Engine {
+    pub song_library: SongLibrary
+}
 
 impl Engine {
     pub fn start(&mut self) {
