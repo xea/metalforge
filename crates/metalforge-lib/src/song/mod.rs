@@ -24,8 +24,7 @@ impl Song {
     }
 }
 
-#[derive(Debug, Hash, PartialOrd, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, PartialOrd, PartialEq, Eq)]
 pub struct SongHeader {
     pub title: String,
     pub title_sort: String,
@@ -42,16 +41,14 @@ pub struct SongHeader {
     // - Average BPM
     // - Composer
     // - Tuning offset (hz/cents)
-    pub cover_art_path: Option<String>,
-    pub backing_track_path: Option<String>,
-    pub song_preview_path: Option<String>,
     pub arrangements: Vec<Arrangement>,
 }
 
-#[derive(Debug, Hash, PartialOrd, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, PartialOrd, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Arrangement {
     pub id: String,
+    pub asset_id: AssetId,
     pub name: String,
     pub instrument: Instrument,
     pub tuning: Option<Tuning>
@@ -65,6 +62,7 @@ pub enum Instrument {
     AcousticGuitar,
     ElectricGuitar,
 }
+
 #[derive(Debug, Hash, PartialOrd, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Tuning {

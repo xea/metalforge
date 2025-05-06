@@ -1,11 +1,8 @@
-use crate::song::Song;
 use rockysmithereens_parser::SongFile as RSSongFile;
 use std::fs::File;
 use std::io::{BufReader, Error, ErrorKind, Read};
 use std::path::Path;
-
-const DEFAULT_URL: &str = "file:///";
-const ARRANGEMENT_VOCALS: &str = "Vocals";
+use crate::song::Song;
 
 pub(crate) fn load_psarc<P: AsRef<Path>>(path: P) -> std::io::Result<Vec<Song>> {
     File::open(path.as_ref())

@@ -53,10 +53,9 @@ fn setup_player(
         .get(menu_state.selected_arrangement_idx)
         .expect("Unable to find selected arrangement");
 
+    let asset_id = &arrangement.asset_id;
 
-    let asset_id = unimplemented!();
-
-    let part = load_instrument_part(&asset_id)?;
+    let part = load_instrument_part(&asset_id).unwrap();
 
     // Text 2D
     let font = asset_server.load("fonts/FiraMono-Medium.ttf");

@@ -1,5 +1,5 @@
-use crate::psarc::load_psarc;
-use crate::songfile::load_song;
+use psarc::load_psarc;
+use songfile::load_song;
 use log::trace;
 use std::ffi::OsStr;
 use std::fs::File;
@@ -9,6 +9,9 @@ use std::path;
 use std::path::{Path, PathBuf};
 use url::Url;
 use crate::song::Song;
+
+pub mod psarc;
+pub mod songfile;
 
 /// Metalforge song file type extension
 const EXT_MFSONG: &str = "mfsong";
