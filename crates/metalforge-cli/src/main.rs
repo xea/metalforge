@@ -1,9 +1,11 @@
 use metalforge_lib::part::{Duration, InstrumentPart, Note, PitchClass};
-use metalforge_lib::song::{Arrangement, Instrument, Song, SongHeader, Tuning};
 use std::env::args;
 use std::fs::{exists, DirBuilder, File};
 use std::io::{BufWriter, Error, ErrorKind};
 use std::path::Path;
+use metalforge_lib::asset::AssetId;
+use metalforge_lib::loader::songfile::SongDef;
+use metalforge_lib::song::{Arrangement, Instrument, Song, SongHeader, SongType, Tuning};
 
 enum Action {
     GenerateConfig,
@@ -46,7 +48,7 @@ fn generate_config() {
 
 }
 
-fn example_song() -> (SongHeader, Vec<InstrumentPart>) {
+fn example_song() -> (Song, Vec<InstrumentPart>) {
     let song_header = SongHeader {
         title: "The Sample Song".to_string(),
         title_sort: "Sample Song, The".to_string(),
@@ -60,6 +62,7 @@ fn example_song() -> (SongHeader, Vec<InstrumentPart>) {
         arrangements: vec![
             Arrangement {
                 id: "lead_guitar".to_string(),
+                asset_id: AssetId::from_paths("root_dir", "arrangement_lead_guitar.yaml"),
                 name: "Lead Guitar".to_string(),
                 instrument: Instrument::ElectricGuitar,
                 tuning: Some(Tuning::Standard)
@@ -76,21 +79,29 @@ fn example_song() -> (SongHeader, Vec<InstrumentPart>) {
                     class: PitchClass::C,
                     octave: 4,
                     time: 1.0,
+                    sustain: 1.0,
                     duration: Duration::Whole,
                     velocity: 4,
-                    dotted: false,
                     string: 0,
                     fret: 0,
                 }
             ],
         }
     ];
+    
+    let song = Song {
+        header: song_header,
+        song_type: SongType::Unpacked,
+        cover_art: Some(AssetId::from_paths("base_path", "asset_path")),
+        song: None,
+        preview: None,
+    };
 
-    (song_header, instrument_parts)
+    (song, instrument_parts)
 }
 
 fn generate_sample_song() {
-    let (song_header, instrument_parts) = example_song();
+    let (song, instrument_parts) = example_song();
 
     const EXAMPLES_DIR: &str = "examples";
     const SONG_DIR: &str = "examples/sample_song";
@@ -115,7 +126,7 @@ fn generate_sample_song() {
             false => Ok(())
         })
         .and_then(|_| File::create(SONG_YAML))
-        .and_then(|song_yaml| serde_yaml::to_writer(BufWriter::new(song_yaml), &song_header)
+        .and_then(|song_yaml| serde_yaml::to_writer(BufWriter::new(song_yaml), &SongDef::from(&song))
             .map_err(|err| Error::new(ErrorKind::Other, err)))
         // Generate the instrument parts and fail early if there was an error
         .and_then(|_| {
@@ -195,7 +206,7 @@ fn convert_psarc(items: Vec<String>) {
             if let Ok(mfsong_yaml) = File::create(format!("{}/song.yaml", outdir)) {
                 let writer = BufWriter::new(mfsong_yaml);
 
-                if let Ok(_) = serde_yaml::to_writer(writer, &song.0.header) {
+                if let Ok(_) = serde_yaml::to_writer(writer, &SongDef::from(&song.0)) {
                     // Ignore
                 } else {
                     eprintln!("Failed to write song to output");

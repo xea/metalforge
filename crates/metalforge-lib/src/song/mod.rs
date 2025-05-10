@@ -1,10 +1,23 @@
 use crate::asset::AssetId;
 use serde::{Deserialize, Serialize};
+use crate::loader::AssetLoader;
+use crate::loader::psarc::PSARCAssetLoader;
+use crate::part::InstrumentPart;
+
+#[derive(Debug, Eq, PartialEq, PartialOrd)]
+pub enum SongType {
+    Unpacked,
+    Packed,
+    PSARC
+}
 
 #[derive(Debug, Eq, PartialEq, PartialOrd)]
 pub struct Song {
     pub header: SongHeader,
+    pub song_type: SongType,
     pub cover_art: Option<AssetId>,
+    pub song: Option<AssetId>,
+    pub preview: Option<AssetId>,
 }
 
 impl Song {
@@ -22,10 +35,23 @@ impl Song {
         self.header.arrangements.push(other);
         self
     }
+    
+    pub fn instrument_part(&self, asset_id: &AssetId) -> std::io::Result<InstrumentPart> {
+        match &self.song_type {
+            SongType::Unpacked => {
+                unimplemented!()
+            }
+            SongType::Packed => {
+                unimplemented!()
+            }
+            SongType::PSARC => {
+                PSARCAssetLoader::load_instrument_part(asset_id)
+            }
+        }
+    }
 }
 
-#[derive(Debug, Hash, PartialOrd, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, PartialOrd, PartialEq, Eq)]
 pub struct SongHeader {
     pub title: String,
     pub title_sort: String,
@@ -42,30 +68,30 @@ pub struct SongHeader {
     // - Average BPM
     // - Composer
     // - Tuning offset (hz/cents)
-    pub cover_art_path: Option<String>,
-    pub backing_track_path: Option<String>,
-    pub song_preview_path: Option<String>,
     pub arrangements: Vec<Arrangement>,
 }
 
-#[derive(Debug, Hash, PartialOrd, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialOrd, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Arrangement {
     pub id: String,
+    pub asset_id: AssetId,
     pub name: String,
     pub instrument: Instrument,
     pub tuning: Option<Tuning>
 }
 
-#[derive(Debug, Hash, PartialOrd, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub enum Instrument {
     Vocal,
     ElectricBass,
     AcousticGuitar,
+    #[default]
     ElectricGuitar,
 }
-#[derive(Debug, Hash, PartialOrd, PartialEq, Eq, Serialize, Deserialize)]
+
+#[derive(Debug, Clone, Hash, PartialOrd, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Tuning {
     // E2 A2 D3 G3 B3 E4
@@ -75,5 +101,5 @@ pub enum Tuning {
     // of a 6-string guitar, the value of [ 0, 0, 0, 0, 0, 0 ] represents standard tuning, while the
     // value [ -4, -4, -4, -4, -4, -4 ] means lowered Eb tuning, and the value [ -8, 0, 0, 0, 0, 0 ]
     // represents Drop D.
-    Custom(Vec<u16>)
+    Custom(Vec<i8>)
 }

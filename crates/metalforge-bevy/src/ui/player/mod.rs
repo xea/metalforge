@@ -1,23 +1,29 @@
+use std::time::{Duration, Instant};
 use crate::ui::menu::{MenuEvent, MenuState};
-use crate::ui::{AppState, EngineView, LibraryView};
+use crate::ui::{AppState, EngineView};
 use bevy::app::AppExit;
-use bevy::color::palettes::basic::{PURPLE, RED};
 use bevy::input::ButtonInput;
-use bevy::prelude::{default, in_state, App, AssetServer, Assets, Camera2d, Color, ColorMaterial, Commands, Component, Event, EventReader, EventWriter, IntoScheduleConfigs, KeyCode, Mesh, Mesh2d, MeshMaterial2d, NextState, OnEnter, Query, Rectangle, Res, ResMut, Resource, Sprite, State, Text2d, TextFont, Time, Transform, Update, Vec2, Vec3, With};
+use bevy::prelude::{default, in_state, App, AssetServer, Assets, Camera2d, Color, ColorMaterial, Commands, Component, Event, EventReader, EventWriter, IntoScheduleConfigs, KeyCode, Mesh, NextState, OnEnter, Query, Res, ResMut, Resource, Sprite, State, Text2d, TextFont, Time, Transform, Update, Vec2, Vec3, With};
 use bevy::text::TextBounds;
-use metalforge_lib::asset::{load_asset, load_instrument_part};
 
 /// `PlayerEvent` describes the various events that may happen during song play.
 #[derive(Event, Copy, Clone)]
 pub enum PlayerEvent {
+    ScrollForward,
+    ScrollBackward,
     ResumeSong,
     PauseSong
 }
 
 #[derive(Resource, Default)]
 struct PlayerState {
-    song_playing: bool
+    song_playing: bool,
+    current_time: Duration
 }
+
+/// Specifies how many screen pixels represent one second of time. The higher this setting is, the
+/// longer various UI elements will be.
+const UI_TIME_SCALE: f32 = 1.0;
 
 pub fn player_plugin(app: &mut App) {
     app
@@ -53,10 +59,7 @@ fn setup_player(
         .get(menu_state.selected_arrangement_idx)
         .expect("Unable to find selected arrangement");
 
-
-    let asset_id = unimplemented!();
-
-    let part = load_instrument_part(&asset_id)?;
+    let part = song.instrument_part(&arrangement.asset_id).unwrap();
 
     // Text 2D
     let font = asset_server.load("fonts/FiraMono-Medium.ttf");
@@ -76,7 +79,7 @@ fn setup_player(
     const BOX_HEIGHT: f32 = 30.0;
 
     for note in &part.notes {
-        let box_size = Vec2::new(BOX_WIDTH, BOX_HEIGHT);
+        let box_size = Vec2::new(note.sustain * 4.0, BOX_HEIGHT);
         let string = note.string as f32 * BOX_HEIGHT;
 
         commands.spawn((
@@ -121,6 +124,12 @@ fn handle_keyboard(
                 println!("Ignored escape");
             }
         }
+    } else if input.pressed(KeyCode::ArrowLeft) {
+        player_events.write(PlayerEvent::ScrollBackward);
+
+    } else if input.pressed(KeyCode::ArrowRight) {
+        player_events.write(PlayerEvent::ScrollForward);
+
     } else if input.just_pressed(KeyCode::Space) {
         if player_state.song_playing {
             player_events.write(PlayerEvent::PauseSong);
@@ -148,6 +157,14 @@ fn handle_player_events(
                 player_state.song_playing = false;
                 engine.0.stop()
             }
+            PlayerEvent::ScrollForward => {
+                player_state.current_time = player_state.current_time.checked_add(Duration::from_millis(1000))
+                    .unwrap_or(player_state.current_time);
+            }
+            PlayerEvent::ScrollBackward => {
+                player_state.current_time = player_state.current_time.checked_sub(Duration::from_millis(1000))
+                    .unwrap_or(player_state.current_time);
+            }
         }
     }
 }
@@ -171,8 +188,10 @@ fn move_cursor(mut query: Query<&mut Transform, With<Cursor>>, player_state: Res
         return;
     };
 
+    cursor.translation.x = player_state.current_time.as_millis() as f32 / 100.0;
+
     if player_state.song_playing {
-        cursor.translation.x += 1.0;
+        // cursor.translation.x += 1.0;
     }
 }
 
@@ -181,8 +200,10 @@ fn move_camera(mut query: Query<&mut Transform, With<Camera2d>>, player_state: R
         return;
     };
 
+    camera.translation.x = player_state.current_time.as_millis() as f32 / 100.0;
+
     if player_state.song_playing {
-        camera.translation.x += 1.0;
+        // camera.translation.x += 1.0;
     }
 }
 

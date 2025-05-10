@@ -20,12 +20,11 @@ pub struct Note {
     pub class: PitchClass,
     pub octave: u8,
     pub time: f32,
+    pub sustain: f32,
     pub duration: Duration,
     // Velocity of the note, 0.. quiet, ..255 loud
     #[serde(default)]
     pub velocity: u8,
-    #[serde(default)]
-    pub dotted: bool,
     // 0 - High E, 5 - Low E, 6 - Low B
     pub string: u8,
     // 0 - open string, 12 - octave up

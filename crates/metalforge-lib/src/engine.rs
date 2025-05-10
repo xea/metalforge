@@ -1,5 +1,4 @@
 use crate::library::SongLibrary;
-use crate::loader::scan_libraries;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{Device, FromSample, InputCallbackInfo, OutputCallbackInfo, Sample, SampleFormat, StreamConfig, StreamError, SupportedStreamConfig};
 use fundsp::hacker::{sine_hz, AudioUnit};
@@ -7,6 +6,7 @@ use spectrum_analyzer::scaling::divide_by_N_sqrt;
 use spectrum_analyzer::windows::hann_window;
 use spectrum_analyzer::{samples_fft_to_spectrum, FrequencyLimit, FrequencySpectrum};
 use std::time::Duration;
+use crate::loader::scan_libraries;
 
 #[derive(Default)]
 pub struct EngineBuilder {
