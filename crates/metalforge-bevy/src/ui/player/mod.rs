@@ -3,11 +3,11 @@ use crate::ui::menu::{MenuEvent, MenuState};
 use crate::ui::{AppState, EngineView};
 use bevy::app::AppExit;
 use bevy::input::ButtonInput;
-use bevy::prelude::{default, in_state, App, AssetServer, Assets, Camera2d, Color, ColorMaterial, Commands, Component, Event, EventReader, EventWriter, IntoScheduleConfigs, KeyCode, Mesh, NextState, OnEnter, Query, Res, ResMut, Resource, Sprite, State, Text2d, TextFont, Time, Transform, Update, Vec2, Vec3, With};
+use bevy::prelude::{default, in_state, App, AssetServer, Assets, Camera2d, Color, ColorMaterial, Commands, Component, Event, EventReader, EventWriter, IntoScheduleConfigs, KeyCode, Mesh, Message, NextState, OnEnter, Query, Res, ResMut, Resource, Sprite, State, Text2d, TextFont, Time, Transform, Update, Vec2, Vec3, With};
 use bevy::text::TextBounds;
 
 /// `PlayerEvent` describes the various events that may happen during song play.
-#[derive(Event, Copy, Clone)]
+#[derive(Message, Copy, Clone)]
 pub enum PlayerEvent {
     ScrollForward,
     ScrollBackward,

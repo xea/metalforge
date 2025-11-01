@@ -10,12 +10,12 @@ use crate::ui::menu::song_library::{setup_song_library, OnSongLibrary};
 use crate::ui::AppState;
 use bevy::app::{App, AppExit, Update};
 use bevy::color::Color;
-use bevy::color::palettes::basic::RED;
 use bevy::input::ButtonInput;
-use bevy::prelude::{default, in_state, Changed, Commands, Component, Entity, Event, EventReader, EventWriter, IntoScheduleConfigs, KeyCode, NextState, OnEnter, OnExit, Query, Res, ResMut, Resource, State, With};
+use bevy::prelude::{default, in_state, Changed, Commands, Component, Entity, Event, IntoScheduleConfigs, KeyCode, Message, MessageReader, MessageWriter, NextState, OnEnter, OnExit, Query, Res, ResMut, Resource, State, With};
 use bevy::text::TextColor;
 use bevy_ui::prelude::{Button, Text};
-use bevy_ui::{BackgroundColor, FlexDirection, Interaction, Node, TextShadow, Val};
+use bevy_ui::{FlexDirection, Interaction, Node, Val};
+use bevy_ui::widget::TextShadow;
 
 pub const NORMAL_COLOR: Color = Color::srgb(1., 1., 1.);
 pub const HOVERED_COLOR: Color = Color::srgb(0.6, 0.6, 1.);
@@ -29,7 +29,7 @@ pub fn menu_plugin(app: &mut App) {
     );
 
     app.insert_resource(MenuState::default())
-        .add_event::<MenuEvent>()
+        .add_message::<MenuEvent>()
         .add_systems(OnEnter(AppState::MainMenu), setup_main_menu)
         .add_systems(OnExit(AppState::MainMenu), despawn_screen::<OnMainMenu>)
         .add_systems(OnEnter(AppState::SongLibrary), setup_song_library)
@@ -62,7 +62,7 @@ pub fn menu_plugin(app: &mut App) {
         );
 }
 
-#[derive(Event, Component, Copy, Clone, Default)]
+#[derive(Message, Component, Copy, Clone, Default)]
 pub enum MenuEvent {
     #[default]
     OpenMainMenu,
@@ -144,7 +144,7 @@ fn highlight_menu(
 }
 
 fn handle_menu_mouse(
-    mut events: EventWriter<MenuEvent>,
+    mut events: MessageWriter<MenuEvent>,
     mut interactions: Query<
         (&Interaction, &MenuIdx, &MenuEvent),
         (Changed<Interaction>, With<Button>),
@@ -166,7 +166,7 @@ fn handle_menu_mouse(
 fn handle_menu_keys(
     input: Res<ButtonInput<KeyCode>>,
     current_app_state: Res<State<AppState>>,
-    mut events: EventWriter<MenuEvent>,
+    mut events: MessageWriter<MenuEvent>,
     mut menu_state: ResMut<MenuState>,
 ) {
     if input.just_pressed(KeyCode::Escape) {
@@ -210,10 +210,10 @@ fn handle_menu_keys(
 }
 
 fn handle_menu_events(
-    mut events: EventReader<MenuEvent>,
+    mut events: MessageReader<MenuEvent>,
     mut menu_state: ResMut<MenuState>,
     mut app_state: ResMut<NextState<AppState>>,
-    mut app_exit_events: EventWriter<AppExit>,
+    mut app_exit_events: MessageWriter<AppExit>,
 ) {
     for event in events.read() {
         match event {
