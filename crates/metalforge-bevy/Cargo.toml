@@ -4,12 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-metalforge-lib = { path = "../metalforge-lib" }
 bevy = "0.17"
-bevy_ui = "0.17"
-#bevy_picking = "0.16"
-#bevy_reflect = "0.16"
-#bevy_audio = "0.16"
 
-serde_yaml = "0.9.33"
-serde = { version = "1.0", features = ["derive"] }
+metalforge-lib = { path = "../metalforge-lib" }
