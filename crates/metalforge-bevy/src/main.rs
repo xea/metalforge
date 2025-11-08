@@ -1,11 +1,15 @@
-// 17use metalforge_lib::sanity_check;
-
+use metalforge_lib::engine::Engine;
 use crate::ui::UI;
 
 mod ui;
 
 fn main() {
-    let mut ui = UI::new();
+    log::info!("Initialising application...");
+
+    let mut engine = Engine::new();
+    let mut ui = UI::new(&mut engine);
 
     ui.run();
+
+    log::info!("Exiting...");
 }

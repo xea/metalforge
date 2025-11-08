@@ -4,6 +4,12 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+# The main UI dependency
 bevy = "0.17"
+# Used for transmitting events between the engine and the UI
+crossbeam-channel = "0.5"
+# For logging
+log = "0.4"
 
+# Engine implementation
 metalforge-lib = { path = "../metalforge-lib" }

@@ -2988,6 +2988,8 @@ name = "metalforge-bevy"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "crossbeam-channel",
+ "log",
  "metalforge-lib",
 ]
 
