@@ -8,6 +8,9 @@ use bevy::utils::default;
 use bevy::window::{Window, WindowMode, WindowPlugin, WindowTheme};
 use bevy::winit::WinitSettings;
 use bevy::DefaultPlugins;
+use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
+use bevy_dev_tools::fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin, FrameTimeGraphConfig};
+use bevy_framepace::{debug, FramepacePlugin};
 use metalforge_lib::engine::Engine;
 
 #[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
@@ -32,6 +35,19 @@ impl<'e> UI<'e> {
             }),
             ..default()
         }));
+
+        app.add_plugins(FpsOverlayPlugin {
+            config: FpsOverlayConfig {
+                enabled: false,
+                frame_time_graph_config: FrameTimeGraphConfig {
+                    enabled: false,
+                    ..default()
+                },
+                ..default()
+            }
+        });
+
+        app.add_plugins((FramepacePlugin, debug::DiagnosticsPlugin));
 
         app
             .insert_state(AppState::Player)

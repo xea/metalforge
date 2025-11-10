@@ -6,6 +6,8 @@ edition = "2024"
 [dependencies]
 # The main UI dependency
 bevy = "0.17"
+bevy_dev_tools = "0.17"
+bevy_framepace = "0.20"
 # Used for transmitting events between the engine and the UI
 crossbeam-channel = "0.5"
 # For logging
