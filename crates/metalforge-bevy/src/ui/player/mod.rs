@@ -4,19 +4,19 @@ use bevy::asset::{AssetServer, Assets, Handle};
 use bevy::camera::Camera2d;
 use bevy::math::{Vec2, Vec3};
 use bevy::mesh::{Mesh, Mesh2d};
-use bevy::prelude::{default, in_state, AppExtStates, Bundle, Circle, Color, ColorMaterial, Commands, IntoScheduleConfigs, MeshMaterial2d, Message, OnEnter, Query, Rectangle, Res, ResMut, Resource, States, SystemCondition, Text, Transform, With};
+use bevy::prelude::{default, in_state, AppExtStates, Bundle, Circle, Color, ColorMaterial, Commands, Fixed, IntoScheduleConfigs, MeshMaterial2d, Message, OnEnter, Query, Rectangle, Res, ResMut, Resource, States, SystemCondition, Text, Transform, With};
 use bevy::sprite::{Sprite, Text2d};
 use bevy::text::{Font, TextColor, TextFont};
 use bevy::time::Time;
 use metalforge_lib::song::guitar::{GuitarNote, GuitarTuning};
 use metalforge_lib::song::instrument_part::InstrumentPartType;
 use metalforge_lib::song::song::Song;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use bevy::color::Luminance;
 
 /// The base unit used to calculate distances visually. 1 Unit represents 1 millisecond of time passed.
 /// This setting determines the length of rendered notes and scroll speed as well.
-const BASE_MILLI_LENGTH_UNIT: f32 = 0.1;
+const BASE_MILLI_LENGTH_UNIT: f32 = 0.2;
 const STRING_SPACING: f32 = 40.0;
 
 #[derive(Message, Copy, Clone)]
@@ -32,19 +32,30 @@ pub enum PlayerState {
     Paused,
 }
 
-#[derive(Resource, Default)]
+#[derive(Resource)]
 pub struct Player {
+    create_time: Instant,
     song_position: Duration
+}
+
+impl Default for Player {
+    fn default() -> Self {
+        Self {
+            create_time: Instant::now(),
+            song_position: Duration::ZERO
+        }
+    }
 }
 
 pub fn player_plugin(app: &mut App) {
     app
         .insert_state(PlayerState::Playing)
         .insert_resource(Player::default())
+        .insert_resource(Time::<Fixed>::from_hz(60.0))
         .add_message::<PlayerEvent>()
         .add_systems(OnEnter(AppState::Player), setup_player)
         .add_systems(FixedUpdate, update_player.run_if(in_state(AppState::Player)))
-        .add_systems(Update, move_camera.run_if(in_state(AppState::Player).and(in_state(PlayerState::Playing))));
+        .add_systems(FixedUpdate, move_camera.run_if(in_state(AppState::Player).and(in_state(PlayerState::Playing))));
 }
 
 /// Initialise the tab player screen
@@ -193,19 +204,17 @@ fn create_note(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, mater
 }
 
 fn update_player(mut player: ResMut<Player>, time: Res<Time>) {
-    player.song_position = time.elapsed();
+    let new_time = time.elapsed();
+    let diff = new_time.as_millis() - player.song_position.as_millis();
+    player.song_position = player.create_time.elapsed();
 }
 
 fn move_camera(mut query: Query<&mut Transform, With<Camera2d>>, player: Res<Player>) {
-    /*
     let Ok(mut camera) = query.single_mut() else {
         return;
     };
 
-    let prev_x = camera.translation.x;
-    camera.translation.x = player.song_position.as_millis() as f32 / 10.0;
-     */
-
+    camera.translation.x = player.song_position.as_millis() as f32 * BASE_MILLI_LENGTH_UNIT;
 
     /*
     if player_state.song_playing {
