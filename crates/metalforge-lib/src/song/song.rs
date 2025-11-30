@@ -40,6 +40,12 @@ impl Song {
                                 time: Duration::from_millis(1000), length: Duration::from_millis(1000),
                                 technique: GuitarTechnique::None,
                                 slide_to: 0,
+                            },
+                            GuitarNote {
+                                string: 5, fret: 2, finger: 0,
+                                time: Duration::from_millis(2000), length: Duration::from_millis(500),
+                                technique: GuitarTechnique::None,
+                                slide_to: 0,
                             }
                         ],
                     }),

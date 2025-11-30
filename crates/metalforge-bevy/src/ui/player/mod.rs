@@ -4,15 +4,16 @@ use bevy::asset::{AssetServer, Assets, Handle};
 use bevy::camera::Camera2d;
 use bevy::math::{Vec2, Vec3};
 use bevy::mesh::{Mesh, Mesh2d};
-use bevy::prelude::{default, in_state, AppExtStates, Bundle, Circle, Color, ColorMaterial, Commands, Fixed, IntoScheduleConfigs, MeshMaterial2d, Message, OnEnter, Query, Rectangle, Res, ResMut, Resource, States, SystemCondition, Text, Transform, With};
+use bevy::prelude::{default, in_state, AppExtStates, Bundle, Circle, Color, ColorMaterial, Commands, Component, Fixed, IntoScheduleConfigs, KeyCode, MeshMaterial2d, Message, MessageReader, MessageWriter, NextState, OnEnter, Query, Rectangle, Res, ResMut, Resource, State, States, SystemCondition, Text, Transform, With};
 use bevy::sprite::{Sprite, Text2d};
 use bevy::text::{Font, TextColor, TextFont};
-use bevy::time::Time;
+use bevy::time::{Time, Virtual};
 use metalforge_lib::song::guitar::{GuitarNote, GuitarTuning};
 use metalforge_lib::song::instrument_part::InstrumentPartType;
 use metalforge_lib::song::song::Song;
 use std::time::{Duration, Instant};
 use bevy::color::Luminance;
+use bevy::input::ButtonInput;
 
 /// The base unit used to calculate distances visually. 1 Unit represents 1 millisecond of time passed.
 /// This setting determines the length of rendered notes and scroll speed as well.
@@ -23,7 +24,9 @@ const STRING_SPACING: f32 = 40.0;
 pub enum PlayerEvent {
     StartPlaying,
     PausePlaying,
-    ResumePlaying
+    ResumePlaying,
+    JumpForwards(Duration),
+    JumpBackwards(Duration),
 }
 
 #[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
@@ -34,14 +37,34 @@ pub enum PlayerState {
 
 #[derive(Resource)]
 pub struct Player {
-    create_time: Instant,
+    // We may want to use Bevy's Virtual clock as it can be paused/unpaused/sped up and slowed down.
+    last_start: Instant,
     song_position: Duration
+}
+
+impl Player {
+    pub fn rewind(&mut self) {
+        self.song_position = Duration::ZERO;
+        self.last_start = Instant::now();
+    }
+
+    pub fn resume(&mut self) {
+        self.last_start = Instant::now();
+    }
+
+    pub fn jump_forwards(&mut self, diff: &Duration) {
+        self.song_position += *diff;
+    }
+
+    pub fn jump_backwards(&mut self, diff: &Duration) {
+        self.song_position -= Duration::min(self.song_position, *diff);
+    }
 }
 
 impl Default for Player {
     fn default() -> Self {
         Self {
-            create_time: Instant::now(),
+            last_start: Instant::now(),
             song_position: Duration::ZERO
         }
     }
@@ -51,18 +74,21 @@ pub fn player_plugin(app: &mut App) {
     app
         .insert_state(PlayerState::Playing)
         .insert_resource(Player::default())
+        .insert_resource(Time::<Virtual>::from_max_delta(Duration::from_millis(100)))
         .insert_resource(Time::<Fixed>::from_hz(60.0))
         .add_message::<PlayerEvent>()
         .add_systems(OnEnter(AppState::Player), setup_player)
+        .add_systems(Update, handle_keyboard)
+        .add_systems(Update, handle_events)
         .add_systems(FixedUpdate, update_player.run_if(in_state(AppState::Player)))
-        .add_systems(FixedUpdate, move_camera.run_if(in_state(AppState::Player).and(in_state(PlayerState::Playing))));
+        .add_systems(FixedUpdate, (move_cursor, move_camera).run_if(in_state(AppState::Player)));
 }
 
 /// Initialise the tab player screen
-fn setup_player(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>, asset_server: Res<AssetServer>) {
+fn setup_player(mut commands: Commands, mut message_writer: MessageWriter<PlayerEvent>, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>, asset_server: Res<AssetServer>) {
     // Load song
     let song = Song::test_song();
-    let instrument = song.instrument_parts.get(0).expect("An instrument part was expected");
+    let instrument = song.instrument_parts.first().expect("An instrument part was expected");
     let part = match &instrument.instrument_type {
         InstrumentPartType::LeadGuitar(part) => part,
         InstrumentPartType::RhythmGuitar(part) => part,
@@ -81,24 +107,30 @@ fn setup_player(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut ma
     create_string_lines(&mut commands, &part.tuning, &song.metadata.length);
 
     // Draw the individual notes
-
     for note in notes.iter() {
         create_note(&mut commands, &mut meshes, &mut materials, note, part.tuning.string_offsets.len());
     }
 
+    // Start playing
+    message_writer.write(PlayerEvent::StartPlaying);
 }
+
+#[derive(Component)]
+struct Cursor;
 
 #[derive(Bundle)]
-struct Cursor {
+struct CursorBundle {
     sprite: Sprite,
-    transform: Transform
+    transform: Transform,
+    cursor: Cursor
 }
 
-impl Cursor {
+impl CursorBundle {
     pub fn new() -> Self {
         Self {
             sprite: Sprite::from_color(Color::srgb(1.0, 1.0, 1.0), Vec2::new(1.0, 280.0)),
             transform: Transform::from_xyz(0.0, 0.0, 0.0),
+            cursor: Cursor
         }
     }
 }
@@ -127,7 +159,7 @@ impl TitleText {
 }
 
 fn create_cursor(commands: &mut Commands) {
-    commands.spawn(Cursor::new());
+    commands.spawn(CursorBundle::new());
 }
 
 fn string_offset(idx: usize, strings: usize) -> f32 {
@@ -196,17 +228,18 @@ fn create_note(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, mater
             .with_scale(Vec3::new(0.8, 0.8, 1.0)),
     ));
 
-    // Render text on top of it all
+    // Render text on top of the notes
     commands.spawn((
-        Text2d::new("C#"),
+        Text2d::new(format!("{}", note.fret)),
         Transform::from_xyz(position, note_offset, 0.3)
     ));
 }
 
-fn update_player(mut player: ResMut<Player>, time: Res<Time>) {
-    let new_time = time.elapsed();
-    let diff = new_time.as_millis() - player.song_position.as_millis();
-    player.song_position = player.create_time.elapsed();
+fn update_player(mut player: ResMut<Player>, player_state: Res<State<PlayerState>>, time: Res<Time>) {
+    if player_state.get() == &PlayerState::Playing {
+        let delta = time.delta() * 1;
+        player.song_position += delta;
+    }
 }
 
 fn move_camera(mut query: Query<&mut Transform, With<Camera2d>>, player: Res<Player>) {
@@ -215,10 +248,68 @@ fn move_camera(mut query: Query<&mut Transform, With<Camera2d>>, player: Res<Pla
     };
 
     camera.translation.x = player.song_position.as_millis() as f32 * BASE_MILLI_LENGTH_UNIT;
+}
 
-    /*
-    if player_state.song_playing {
-        // camera.translation.x += 1.0;
+fn move_cursor(mut query: Query<&mut Transform, With<Cursor>>, player: Res<Player>) {
+    query.single_mut().expect("").translation.x = player.song_position.as_millis() as f32 * BASE_MILLI_LENGTH_UNIT;
+}
+
+fn handle_keyboard(input: Res<ButtonInput<KeyCode>>, player_state: Res<State<PlayerState>>, mut player_events: MessageWriter<PlayerEvent>) {
+    if input.just_pressed(KeyCode::Space) {
+        if player_state.get() == &PlayerState::Playing {
+            player_events.write(PlayerEvent::PausePlaying);
+
+        } else if player_state.get() == &PlayerState::Paused {
+            player_events.write(PlayerEvent::ResumePlaying);
+
+        }
+    } else if input.pressed(KeyCode::ArrowLeft) {
+        player_events.write(PlayerEvent::JumpBackwards(Duration::from_millis(50)));
+
+    } else if input.pressed(KeyCode::ArrowRight) {
+        player_events.write(PlayerEvent::JumpForwards(Duration::from_millis(50)));
+
     }
-     */
+}
+
+fn handle_events(mut events: MessageReader<PlayerEvent>, mut player: ResMut<Player>, mut player_state: ResMut<NextState<PlayerState>>, mut time: ResMut<Time<Virtual>>) {
+    for event in events.read() {
+        match *event {
+            PlayerEvent::StartPlaying => {
+                rewind_player(&mut player, &mut time);
+                resume_play(&mut player, &mut player_state);
+            }
+            PlayerEvent::ResumePlaying => {
+                resume_play(&mut player, &mut player_state);
+            }
+            PlayerEvent::PausePlaying => {
+                player_state.set(PlayerState::Paused);
+                println!("Playing paused");
+            },
+            PlayerEvent::JumpForwards(diff) => {
+                jump_forwards(&mut player, &diff);
+            },
+            PlayerEvent::JumpBackwards(diff) => {
+                jump_backwards(&mut player, &diff);
+            }
+        }
+    }
+}
+
+fn rewind_player(player: &mut ResMut<Player>, time: &mut ResMut<Time<Virtual>>) {
+    player.rewind();
+}
+
+fn resume_play(player: &mut ResMut<Player>, player_state: &mut ResMut<NextState<PlayerState>>) {
+    player.resume();
+    player_state.set(PlayerState::Playing);
+    println!("Resume playing");
+}
+
+fn jump_forwards(player: &mut ResMut<Player>, diff: &Duration) {
+    player.jump_forwards(diff);
+}
+
+fn jump_backwards(player: &mut ResMut<Player>, diff: &Duration) {
+    player.jump_backwards(diff);
 }
