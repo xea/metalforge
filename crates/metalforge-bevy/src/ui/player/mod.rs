@@ -1,10 +1,12 @@
-use crate::ui::AppState;
+use crate::ui::{AppState, UIEngine};
 use bevy::app::{App, FixedUpdate, Update};
 use bevy::asset::{AssetServer, Assets, Handle};
 use bevy::camera::Camera2d;
+use bevy::color::Luminance;
+use bevy::input::ButtonInput;
 use bevy::math::{Vec2, Vec3};
 use bevy::mesh::{Mesh, Mesh2d};
-use bevy::prelude::{default, in_state, AppExtStates, Bundle, Circle, Color, ColorMaterial, Commands, Component, Fixed, IntoScheduleConfigs, KeyCode, MeshMaterial2d, Message, MessageReader, MessageWriter, NextState, OnEnter, Query, Rectangle, Res, ResMut, Resource, State, States, SystemCondition, Text, Transform, With};
+use bevy::prelude::{default, in_state, AppExtStates, Bundle, Circle, Color, ColorMaterial, Commands, Component, Fixed, IntoScheduleConfigs, KeyCode, MeshMaterial2d, Message, MessageReader, MessageWriter, NextState, OnEnter, Query, Rectangle, Res, ResMut, Resource, State, States, Text, Transform, With};
 use bevy::sprite::{Sprite, Text2d};
 use bevy::text::{Font, TextColor, TextFont};
 use bevy::time::{Time, Virtual};
@@ -12,8 +14,7 @@ use metalforge_lib::song::guitar::{GuitarNote, GuitarTuning};
 use metalforge_lib::song::instrument_part::InstrumentPartType;
 use metalforge_lib::song::song::Song;
 use std::time::{Duration, Instant};
-use bevy::color::Luminance;
-use bevy::input::ButtonInput;
+use metalforge_lib::engine::EngineCommand;
 
 /// The base unit used to calculate distances visually. 1 Unit represents 1 millisecond of time passed.
 /// This setting determines the length of rendered notes and scroll speed as well.
@@ -85,7 +86,7 @@ pub fn player_plugin(app: &mut App) {
 }
 
 /// Initialise the tab player screen
-fn setup_player(mut commands: Commands, mut message_writer: MessageWriter<PlayerEvent>, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>, asset_server: Res<AssetServer>) {
+fn setup_player(mut commands: Commands, mut engine: ResMut<UIEngine>, mut message_writer: MessageWriter<PlayerEvent>, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>, asset_server: Res<AssetServer>) {
     // Load song
     let song = Song::test_song();
     let instrument = song.instrument_parts.first().expect("An instrument part was expected");
@@ -113,6 +114,7 @@ fn setup_player(mut commands: Commands, mut message_writer: MessageWriter<Player
 
     // Start playing
     message_writer.write(PlayerEvent::StartPlaying);
+    engine.engine.send(EngineCommand::PlaySong);
 }
 
 #[derive(Component)]

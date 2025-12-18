@@ -3,7 +3,7 @@ mod player;
 
 use bevy::app::{App, PluginGroup, Startup, Update};
 use bevy::camera::Camera2d;
-use bevy::prelude::{AppExtStates, Commands, MonitorSelection, States};
+use bevy::prelude::{AppExtStates, Commands, MonitorSelection, Resource, States};
 use bevy::utils::default;
 use bevy::window::{Window, WindowMode, WindowPlugin, WindowTheme};
 use bevy::winit::WinitSettings;
@@ -11,20 +11,24 @@ use bevy::DefaultPlugins;
 use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
 use bevy_dev_tools::fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin, FrameTimeGraphConfig};
 use bevy_framepace::{debug, FramepacePlugin};
-use metalforge_lib::engine::Engine;
+use metalforge_lib::engine::{Engine, EngineChannel};
 
 #[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum AppState {
     Player
 }
 
-pub struct UI<'e> {
-    app: App,
-    engine: &'e mut Engine
+#[derive(Resource)]
+pub struct UIEngine {
+    engine: EngineChannel
 }
 
-impl<'e> UI<'e> {
-    pub fn new(engine: &'e mut Engine) -> Self {
+pub struct UI {
+    app: App,
+}
+
+impl UI {
+    pub fn new(engine: EngineChannel) -> Self {
         let mut app = App::new();
 
         app.add_plugins(DefaultPlugins.set(WindowPlugin {
@@ -52,12 +56,13 @@ impl<'e> UI<'e> {
         app
             .insert_state(AppState::Player)
             .insert_resource(WinitSettings::game())
+            .insert_resource(UIEngine { engine })
             .add_plugins(player::player_plugin)
             .add_systems(Startup, setup);
 
         Self {
             app,
-            engine
+    //        engine
         }
     }
 

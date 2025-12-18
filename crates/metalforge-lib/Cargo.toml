@@ -6,4 +6,5 @@ edition = "2024"
 [lib]
 
 [dependencies]
+crossbeam-channel = "0.5"
 rodio = "0.21"

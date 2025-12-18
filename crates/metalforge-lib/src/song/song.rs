@@ -1,8 +1,8 @@
-use std::time::Duration;
-use crate::song::guitar::{CommonTunings, GuitarNote, GuitarPart, GuitarTechnique, GuitarTuning};
+use crate::song::guitar::{CommonTunings, GuitarNote, GuitarPart, GuitarTechnique};
 use crate::song::instrument_part::{InstrumentPart, InstrumentPartType};
 use crate::song::key::Key;
 use crate::song::metadata::Metadata;
+use std::time::Duration;
 
 pub struct Song {
     pub metadata: Metadata,
