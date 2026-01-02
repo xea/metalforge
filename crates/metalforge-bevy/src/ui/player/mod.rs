@@ -86,7 +86,7 @@ pub fn player_plugin(app: &mut App) {
 }
 
 /// Initialise the tab player screen
-fn setup_player(mut commands: Commands, mut engine: ResMut<UIEngine>, mut message_writer: MessageWriter<PlayerEvent>, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>, asset_server: Res<AssetServer>) {
+fn setup_player(mut commands: Commands, engine: ResMut<UIEngine>, mut message_writer: MessageWriter<PlayerEvent>, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>, _asset_server: Res<AssetServer>) {
     // Load song
     let song = Song::test_song();
     let instrument = song.instrument_parts.first().expect("An instrument part was expected");
@@ -298,7 +298,7 @@ fn handle_events(mut events: MessageReader<PlayerEvent>, mut player: ResMut<Play
     }
 }
 
-fn rewind_player(player: &mut ResMut<Player>, time: &mut ResMut<Time<Virtual>>) {
+fn rewind_player(player: &mut ResMut<Player>, _time: &mut ResMut<Time<Virtual>>) {
     player.rewind();
 }
 

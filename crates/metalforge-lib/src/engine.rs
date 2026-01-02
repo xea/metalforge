@@ -1,25 +1,25 @@
+use std::fs::File;
 use std::time::Duration;
-use crossbeam_channel::{bounded, Receiver, Sender};
-use rodio::{OutputStream, Sink, Source};
+use crossbeam_channel::{Receiver, Sender};
+use rodio::{Decoder, OutputStream, Sink, Source};
 use rodio::source::SineWave;
 
 pub struct Engine {
     command_rx: Receiver<EngineCommand>,
     command_tx: Sender<EngineCommand>,
-    _output_stream: OutputStream,
+    output_stream: OutputStream,
     output_sink: Sink
 }
 
 impl Engine {
-    pub fn new() -> Self {
+    pub fn new(command_tx: Sender<EngineCommand>, command_rx: Receiver<EngineCommand>) -> Self {
         let stream_handle = rodio::OutputStreamBuilder::open_default_stream().expect("Cannot open audio stream");
-        let sink = rodio::Sink::connect_new(&stream_handle.mixer());
+        let sink = Sink::connect_new(&stream_handle.mixer());
 
-        let (tx, rx) = bounded(64);
         Self {
-            command_rx: rx,
-            command_tx: tx,
-            _output_stream: stream_handle,
+            command_rx,
+            command_tx,
+            output_stream: stream_handle,
             output_sink: sink
         }
     }
@@ -56,16 +56,28 @@ impl Engine {
 
     fn play_song(&self) {
         // Add a source to the sink
-        let source = SineWave::new(440.0).take_duration(Duration::from_secs(10)).amplify(0.2);
-        self.output_sink.append(source);
+        let source = SineWave::new(440.0)
+            .take_duration(Duration::from_secs(10))
+            .amplify(0.2);
 
+        self.output_sink.append(source);
         self.output_sink.set_speed(0.5);
 
         // And an overlay
-        let alternative = SineWave::new(880.0).take_duration(Duration::from_secs(1)).amplify(0.2);
-        self._output_stream.mixer().add(alternative);
-    }
+        let alternative = SineWave::new(880.0)
+            .take_duration(Duration::from_secs(1))
+            .amplify(0.2);
 
+        self.output_stream.mixer().add(alternative);
+
+        let file = File::open("./examples/sample_song/Sandbox.ogg")
+            .expect("Failed to open OGG file");
+
+        let ogg_source = Decoder::try_from(file)
+            .expect("Failed to decode sound file");
+
+        self.output_stream.mixer().add(ogg_source);
+    }
 
     fn quit(&self) -> bool {
         self.output_sink.stop();

@@ -1,17 +1,16 @@
 mod event;
 mod player;
 
-use bevy::app::{App, PluginGroup, Startup, Update};
+use bevy::app::{App, PluginGroup, Startup};
 use bevy::camera::Camera2d;
-use bevy::prelude::{AppExtStates, Commands, MonitorSelection, Resource, States};
+use bevy::prelude::{AppExtStates, Commands, Resource, States};
 use bevy::utils::default;
-use bevy::window::{Window, WindowMode, WindowPlugin, WindowTheme};
+use bevy::window::{PresentMode, Window, WindowPlugin, WindowTheme};
 use bevy::winit::WinitSettings;
 use bevy::DefaultPlugins;
-use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
 use bevy_dev_tools::fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin, FrameTimeGraphConfig};
 use bevy_framepace::{debug, FramepacePlugin};
-use metalforge_lib::engine::{Engine, EngineChannel};
+use metalforge_lib::engine::{EngineChannel};
 
 #[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum AppState {
@@ -42,9 +41,9 @@ impl UI {
 
         app.add_plugins(FpsOverlayPlugin {
             config: FpsOverlayConfig {
-                enabled: false,
+                enabled: true,
                 frame_time_graph_config: FrameTimeGraphConfig {
-                    enabled: false,
+                    enabled: true,
                     ..default()
                 },
                 ..default()
@@ -70,9 +69,6 @@ impl UI {
         self.app.run();
     }
 
-    fn play(&mut self) {
-        log::info!("Playing...");
-    }
 }
 
 /// Sets up the initial state of the application. This is where we create a camera that defines our main view
