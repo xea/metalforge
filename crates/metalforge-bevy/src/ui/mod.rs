@@ -20,7 +20,7 @@ pub enum AppState {
 
 #[derive(Resource)]
 pub struct UIEngine {
-    engine: EngineChannel
+    channel: EngineChannel
 }
 
 pub struct UI {
@@ -63,7 +63,7 @@ impl UI {
         app
             .insert_state(AppState::Player)
             .insert_resource(WinitSettings::game())
-            .insert_resource(UIEngine { engine })
+            .insert_resource(UIEngine { channel: engine })
             .add_plugins(player::player_plugin);
 
         Self {

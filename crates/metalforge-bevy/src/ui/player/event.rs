@@ -2,7 +2,9 @@ use std::time::Duration;
 use bevy::input::ButtonInput;
 use bevy::prelude::{KeyCode, Message, MessageReader, MessageWriter, NextState, Res, ResMut, State};
 use bevy::time::{Time, Virtual};
+use metalforge_lib::engine::EngineCommand;
 use crate::ui::player::song_player::{PlayerState, SongPlayer};
+use crate::ui::UIEngine;
 
 #[derive(Message, Copy, Clone)]
 pub enum PlayerEvent {
@@ -56,6 +58,7 @@ pub fn handle_keyboard(
 
 pub fn handle_events(
     mut events: MessageReader<PlayerEvent>,
+    mut engine: ResMut<UIEngine>,
     mut player: ResMut<SongPlayer>,
     mut player_state: ResMut<NextState<PlayerState>>,
     mut time: ResMut<Time<Virtual>>
@@ -64,13 +67,13 @@ pub fn handle_events(
         match *event {
             PlayerEvent::StartPlaying => {
                 rewind_player(&mut player, &mut time);
-                resume_play(&mut player, &mut player_state);
+                resume_play(&mut engine, &mut player, &mut player_state);
             }
             PlayerEvent::ResumePlaying => {
-                resume_play(&mut player, &mut player_state);
+                resume_play(&mut engine, &mut player, &mut player_state);
             }
             PlayerEvent::PausePlaying => {
-                pause_play(&mut player, &mut player_state);
+                pause_play(&mut engine, &mut player, &mut player_state);
             },
             PlayerEvent::JumpForwards(diff) => {
                 jump_forwards(&mut player, &diff);
@@ -86,12 +89,14 @@ fn rewind_player(player: &mut ResMut<SongPlayer>, _time: &mut ResMut<Time<Virtua
     player.rewind();
 }
 
-fn pause_play(player: &mut ResMut<SongPlayer>, player_state: &mut ResMut<NextState<PlayerState>>) {
+fn pause_play(engine: &mut ResMut<UIEngine>, player: &mut ResMut<SongPlayer>, player_state: &mut ResMut<NextState<PlayerState>>) {
+    engine.channel.send(EngineCommand::Pause);
     player.pause();
     player_state.set(PlayerState::Paused);
 }
 
-fn resume_play(player: &mut ResMut<SongPlayer>, player_state: &mut ResMut<NextState<PlayerState>>) {
+fn resume_play(engine: &mut ResMut<UIEngine>, player: &mut ResMut<SongPlayer>, player_state: &mut ResMut<NextState<PlayerState>>) {
+    engine.channel.send(EngineCommand::Resume);
     player.resume();
     player_state.set(PlayerState::Playing);
 }

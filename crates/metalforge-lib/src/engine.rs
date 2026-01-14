@@ -49,6 +49,8 @@ impl Engine {
         match *event {
             EngineCommand::Quit => return self.quit(),
             EngineCommand::PlaySong => self.play_song(),
+            EngineCommand::Pause => self.pause(),
+            EngineCommand::Resume => self.resume(),
             EngineCommand::LoadSong => todo!(),
         }
         true
@@ -79,6 +81,18 @@ impl Engine {
         self.output_stream.mixer().add(ogg_source);
     }
 
+    fn pause(&self) {
+        self.output_sink.pause();
+    }
+
+    fn resume(&self) {
+        if self.output_sink.is_paused() {
+            self.output_sink.play();
+        } else {
+            self.play_song();
+        }
+    }
+
     fn quit(&self) -> bool {
         self.output_sink.stop();
         false
@@ -88,6 +102,8 @@ impl Engine {
 pub enum EngineCommand {
     LoadSong,
     PlaySong,
+    Pause,
+    Resume,
     Quit
 }
 

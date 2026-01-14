@@ -5,6 +5,7 @@ mod info;
 
 use crate::ui::player::cursor::CursorBundle;
 use crate::ui::player::event::{handle_events, handle_keyboard, PlayerEvent};
+use crate::ui::player::info::{setup_info, update_info};
 use crate::ui::player::song_player::{PlayerState, SongPlayer};
 use bevy::app::{App, FixedUpdate, Startup, Update};
 use bevy::asset::Assets;
@@ -17,7 +18,6 @@ use bevy::sprite_render::ColorMaterial;
 use bevy::time::{Fixed, Time};
 use rand::random;
 use std::time::Duration;
-use crate::ui::player::info::{setup_info, update_info};
 
 /// The main song player plugin, this method is responsible for setting up the camera, rendering the
 /// song view, etc.
