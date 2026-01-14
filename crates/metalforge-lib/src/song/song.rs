@@ -3,6 +3,7 @@ use crate::song::instrument_part::{InstrumentPart, InstrumentPartType};
 use crate::song::key::Key;
 use crate::song::metadata::Metadata;
 use std::time::Duration;
+use rand::{random, Rng};
 
 pub struct Song {
     pub metadata: Metadata,
@@ -12,6 +13,20 @@ pub struct Song {
 
 impl Song {
     pub fn test_song() -> Self {
+        let mut rng = rand::rng();
+
+        let notes = (0..1000).map(|i| {
+            GuitarNote {
+                string: rng.random_range(0..7),
+                fret: rng.random_range(0..25),
+                finger: rng.random_range(0..6),
+                time: Duration::from_millis(i * 1000),
+                length: Duration::from_millis(rng.random_range(0..6) * 100),
+                technique: GuitarTechnique::None,
+                slide_to: 0
+            }
+        }).collect();
+
         Self {
             metadata: Metadata {
                 title: "Test Song".to_string(),
@@ -28,6 +43,7 @@ impl Song {
                     instrument_type: InstrumentPartType::LeadGuitar(GuitarPart {
                         tuning: CommonTunings::EStandard.into(),
                         capo: 0,
+                        /*
                         notes: vec![
                             GuitarNote {
                                 string: 0, fret: 0, finger: 0,
@@ -47,7 +63,8 @@ impl Song {
                                 technique: GuitarTechnique::None,
                                 slide_to: 0,
                             }
-                        ],
+                        ],*/
+                        notes
                     }),
                 }
             ]

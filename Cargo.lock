@@ -3051,6 +3051,7 @@ dependencies = [
  "crossbeam-channel",
  "log",
  "metalforge-lib",
+ "rand",
 ]
 
 [[package]]
@@ -3058,6 +3059,7 @@ name = "metalforge-lib"
 version = "0.1.0"
 dependencies = [
  "crossbeam-channel",
+ "rand",
  "rodio 0.21.1",
 ]
 

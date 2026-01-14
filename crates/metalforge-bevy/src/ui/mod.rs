@@ -8,6 +8,7 @@ use bevy::utils::default;
 use bevy::window::{PresentMode, Window, WindowPlugin, WindowTheme};
 use bevy::winit::WinitSettings;
 use bevy::DefaultPlugins;
+use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
 use bevy_dev_tools::fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin, FrameTimeGraphConfig};
 use bevy_framepace::{debug, FramepacePlugin};
 use metalforge_lib::engine::{EngineChannel};
@@ -39,6 +40,15 @@ impl UI {
             ..default()
         }));
 
+        /*
+        app.add_plugins(FrameTimeDiagnosticsPlugin {
+            max_history_length: 60,
+            smoothing_factor: 0.0,
+        });
+        
+        app.add_plugins((FramepacePlugin, debug::DiagnosticsPlugin));
+         */
+
         app.add_plugins(FpsOverlayPlugin {
             config: FpsOverlayConfig {
                 enabled: true,
@@ -50,14 +60,11 @@ impl UI {
             }
         });
 
-        app.add_plugins((FramepacePlugin, debug::DiagnosticsPlugin));
-
         app
             .insert_state(AppState::Player)
             .insert_resource(WinitSettings::game())
             .insert_resource(UIEngine { engine })
-            .add_plugins(player::player_plugin)
-            .add_systems(Startup, setup);
+            .add_plugins(player::player_plugin);
 
         Self {
             app,
@@ -68,10 +75,4 @@ impl UI {
     pub fn run(&mut self) {
         self.app.run();
     }
-
-}
-
-/// Sets up the initial state of the application. This is where we create a camera that defines our main view
-fn setup(mut commands: Commands) {
-    commands.spawn(Camera2d);
 }

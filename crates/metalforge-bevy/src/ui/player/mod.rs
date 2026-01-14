@@ -1,161 +1,76 @@
-use crate::ui::{AppState, UIEngine};
-use bevy::app::{App, FixedUpdate, Update};
-use bevy::asset::{AssetServer, Assets, Handle};
+mod song_player;
+mod event;
+mod cursor;
+mod info;
+
+use crate::ui::player::cursor::CursorBundle;
+use crate::ui::player::event::{handle_events, handle_keyboard, PlayerEvent};
+use crate::ui::player::song_player::{PlayerState, SongPlayer};
+use bevy::app::{App, FixedUpdate, Startup, Update};
+use bevy::asset::Assets;
 use bevy::camera::Camera2d;
-use bevy::color::Luminance;
-use bevy::input::ButtonInput;
-use bevy::math::{Vec2, Vec3};
+use bevy::color::Color;
+use bevy::math::Vec3;
 use bevy::mesh::{Mesh, Mesh2d};
-use bevy::prelude::{default, in_state, AppExtStates, Bundle, Circle, Color, ColorMaterial, Commands, Component, Fixed, IntoScheduleConfigs, KeyCode, MeshMaterial2d, Message, MessageReader, MessageWriter, NextState, OnEnter, Query, Rectangle, Res, ResMut, Resource, State, States, Text, Transform, With};
-use bevy::sprite::{Sprite, Text2d};
-use bevy::text::{Font, TextColor, TextFont};
-use bevy::time::{Time, Virtual};
-use metalforge_lib::song::guitar::{GuitarNote, GuitarTuning};
-use metalforge_lib::song::instrument_part::InstrumentPartType;
-use metalforge_lib::song::song::Song;
-use std::time::{Duration, Instant};
-use metalforge_lib::engine::EngineCommand;
+use bevy::prelude::{AppExtStates, Commands, MeshMaterial2d, Query, Rectangle, Res, ResMut, Resource, Transform, With};
+use bevy::sprite_render::ColorMaterial;
+use bevy::time::{Fixed, Time};
+use rand::random;
+use std::time::Duration;
+use crate::ui::player::info::{setup_info, update_info};
 
-/// The base unit used to calculate distances visually. 1 Unit represents 1 millisecond of time passed.
-/// This setting determines the length of rendered notes and scroll speed as well.
-const BASE_MILLI_LENGTH_UNIT: f32 = 0.2;
-const STRING_SPACING: f32 = 40.0;
-
-#[derive(Message, Copy, Clone)]
-pub enum PlayerEvent {
-    StartPlaying,
-    PausePlaying,
-    ResumePlaying,
-    JumpForwards(Duration),
-    JumpBackwards(Duration),
-}
-
-#[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
-pub enum PlayerState {
-    Playing,
-    Paused,
-}
-
-#[derive(Resource)]
-pub struct Player {
-    // We may want to use Bevy's Virtual clock as it can be paused/unpaused/sped up and slowed down.
-    last_start: Instant,
-    song_position: Duration
-}
-
-impl Player {
-    pub fn rewind(&mut self) {
-        self.song_position = Duration::ZERO;
-        self.last_start = Instant::now();
-    }
-
-    pub fn resume(&mut self) {
-        self.last_start = Instant::now();
-    }
-
-    pub fn jump_forwards(&mut self, diff: &Duration) {
-        self.song_position += *diff;
-    }
-
-    pub fn jump_backwards(&mut self, diff: &Duration) {
-        self.song_position -= Duration::min(self.song_position, *diff);
-    }
-}
-
-impl Default for Player {
-    fn default() -> Self {
-        Self {
-            last_start: Instant::now(),
-            song_position: Duration::ZERO
-        }
-    }
-}
-
+/// The main song player plugin, this method is responsible for setting up the camera, rendering the
+/// song view, etc.
 pub fn player_plugin(app: &mut App) {
     app
-        .insert_state(PlayerState::Playing)
-        .insert_resource(Player::default())
-        .insert_resource(Time::<Virtual>::from_max_delta(Duration::from_millis(100)))
-        .insert_resource(Time::<Fixed>::from_hz(60.0))
+        .insert_state(PlayerState::Paused)
+        .insert_resource(SongPlayer::default())
+        .insert_resource(CameraPosition::default())
+        .add_systems(Startup, (setup_player, setup_info, create_camera))
+        .add_systems(Update, (handle_keyboard, handle_events))
+        .add_systems(FixedUpdate, (update_position, update_info))
+        .add_systems(Update, update_camera)
         .add_message::<PlayerEvent>()
-        .add_systems(OnEnter(AppState::Player), setup_player)
-        .add_systems(Update, handle_keyboard)
-        .add_systems(Update, handle_events)
-        .add_systems(FixedUpdate, update_player.run_if(in_state(AppState::Player)))
-        .add_systems(FixedUpdate, (move_cursor, move_camera).run_if(in_state(AppState::Player)));
+    ;
 }
 
-/// Initialise the tab player screen
-fn setup_player(mut commands: Commands, engine: ResMut<UIEngine>, mut message_writer: MessageWriter<PlayerEvent>, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>, _asset_server: Res<AssetServer>) {
-    // Load song
-    let song = Song::test_song();
-    let instrument = song.instrument_parts.first().expect("An instrument part was expected");
-    let part = match &instrument.instrument_type {
-        InstrumentPartType::LeadGuitar(part) => part,
-        InstrumentPartType::RhythmGuitar(part) => part,
-        InstrumentPartType::BassGuitar(part) => part
-    };
+/// This structure is responsible for tracking the camera and translating the player state into camera
+/// coordinates. `current`, `previous`, and `velocity` are used for frame interpolation/extrapolation
+#[derive(Resource, Default)]
+struct CameraPosition {
+    current: Vec3,
+    previous: Vec3,
+    velocity: Vec3
+}
 
-    let notes = &part.notes;
-
-    // Prepare assets
-    // - fonts can be loaded using asset_server.load("fonts/LelandText.otf");
-
-    // Draw vertical cursor
+fn setup_player(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    create_grid(&mut commands, &mut meshes, &mut materials);
     create_cursor(&mut commands);
-
-    // Draw tab string lines
-    create_string_lines(&mut commands, &part.tuning, &song.metadata.length);
-
-    // Draw the individual notes
-    for note in notes.iter() {
-        create_note(&mut commands, &mut meshes, &mut materials, note, part.tuning.string_offsets.len());
-    }
-
-    // Start playing
-    message_writer.write(PlayerEvent::StartPlaying);
-    engine.engine.send(EngineCommand::PlaySong);
 }
 
-#[derive(Component)]
-struct Cursor;
+fn create_grid(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<ColorMaterial>>,
+) {
+    let mesh = meshes.add(Rectangle::new(19.0, 19.0));
+    let material = materials.add(ColorMaterial::from_color(Color::srgb_u8(255, 255, 255)));
 
-#[derive(Bundle)]
-struct CursorBundle {
-    sprite: Sprite,
-    transform: Transform,
-    cursor: Cursor
-}
+    for x in 0..1000 {
+        for y in -5..5 {
+            let r = random::<u16>();
+            let color = Color::srgb((x as f32 / 10.0).sin(), (y as f32 / 10.0).cos(), ((y) as f32 / 10.0).sin());
+            let material = materials.add(ColorMaterial::from_color(color));
 
-impl CursorBundle {
-    pub fn new() -> Self {
-        Self {
-            sprite: Sprite::from_color(Color::srgb(1.0, 1.0, 1.0), Vec2::new(1.0, 280.0)),
-            transform: Transform::from_xyz(0.0, 0.0, 0.0),
-            cursor: Cursor
-        }
-    }
-}
-
-#[derive(Bundle)]
-struct TitleText {
-    text: Text,
-    text2: Text2d,
-    font: TextFont,
-    color: TextColor
-}
-
-impl TitleText {
-    pub fn new(_font_handle: Handle<Font>) -> Self {
-        Self {
-            text: Text::new("MetaL Bundle 𝅘𝅥𝅰 \\m/"),
-            text2: Text2d::new("MetaL Bundle 2D"),
-            font: TextFont {
-                // font: font_handle, but it's not used because the text doesn't show when it is and I don't feel like debugging this right now.
-                font_size: 30.0,
-                ..default()
-            },
-            color: TextColor(Color::srgb(0.7, 0.7, 0.7)),
+            commands.spawn((
+                Mesh2d(mesh.clone()),
+                MeshMaterial2d(material.clone()),
+                Transform::from_xyz(x as f32 * 20.0, y as f32 * 20.0, 0.0)
+            ));
         }
     }
 }
@@ -164,154 +79,36 @@ fn create_cursor(commands: &mut Commands) {
     commands.spawn(CursorBundle::new());
 }
 
-fn string_offset(idx: usize, strings: usize) -> f32 {
-    let height = (strings - 1) as f32 * STRING_SPACING;
-    let offset = height / -2.0;
-    idx as f32 * STRING_SPACING + offset
-}
-
-fn create_string_lines(commands: &mut Commands, tuning: &GuitarTuning, duration: &Duration) {
-    let strings = tuning.string_offsets.len();
-    let length = duration.as_millis() as f32 * BASE_MILLI_LENGTH_UNIT;
-
-    let colors = [
-        Color::srgb(1.0, 0.0, 0.0),
-        Color::srgb(0.8, 0.8, 0.0),
-        Color::srgb(0.2, 0.2, 1.0),
-        Color::srgb(0.8, 0.4, 0.0),
-        Color::srgb(0.2, 1.0, 0.2),
-        Color::srgb(1.0, 0.0, 1.0),
-    ];
-
-    for string in tuning.string_offsets.iter().enumerate() {
-        colors.get(string.0).map(|color| {
-            let string_y = string_offset(string.0, strings);
-
-            commands.spawn((
-                Sprite::from_color(*color, Vec2::new(length, 2.0)),
-                Transform::from_xyz(75.0, string_y, -1.0)
-            ));
-        });
-    }
-}
-
-fn create_note(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<ColorMaterial>>, note: &GuitarNote, strings: usize) {
-    let width = BASE_MILLI_LENGTH_UNIT * note.length.as_millis() as f32;
-    let color = Color::srgb(0.7, 0.7, 0.7);
-    let color_light = color.lighter(0.1);
-    let position = BASE_MILLI_LENGTH_UNIT * note.time.as_millis() as f32;
-
-    let material = materials.add(color);
-    let material_light = materials.add(color_light);
-    let mesh_note_tail = meshes.add(Rectangle::new(width, 30.0));
-    let mesh_circle = meshes.add(Circle::new(20.0));
-
-    let note_offset = string_offset(note.string as usize, strings);
-
-    // Base circle goes to the bottom
+fn create_camera(mut commands: Commands) {
     commands.spawn((
-        Mesh2d(mesh_circle.clone()),
-        MeshMaterial2d(material.clone()),
-        Transform::from_xyz(position, note_offset, 0.0)
-    ));
-
-    // Next is the tail of the note, same colour as the base circle
-    commands.spawn((
-        Mesh2d(mesh_note_tail),
-        MeshMaterial2d(material),
-        Transform::from_xyz(position + width / 2.0, note_offset, 0.0)
-    ));
-
-    // Then the lighter overlay circle covering parts of the base circle
-    commands.spawn((
-        Mesh2d(mesh_circle),
-        MeshMaterial2d(material_light),
-        Transform::from_xyz(position, note_offset, 0.1)
-            .with_scale(Vec3::new(0.8, 0.8, 1.0)),
-    ));
-
-    // Render text on top of the notes
-    commands.spawn((
-        Text2d::new(format!("{}", note.fret)),
-        Transform::from_xyz(position, note_offset, 0.3)
+        Camera2d::default(),
     ));
 }
 
-fn update_player(mut player: ResMut<Player>, player_state: Res<State<PlayerState>>, time: Res<Time>) {
-    if player_state.get() == &PlayerState::Playing {
-        let delta = time.delta() * 1;
-        player.song_position += delta;
+/// Updates the camera position at a fixed frame rate
+fn update_position(time: Res<Time>, mut camera_position: ResMut<CameraPosition>, mut player: ResMut<SongPlayer>) {
+    let position = &mut *camera_position;
+
+    // Swap the previous position to the current, preparing for the next frame
+    position.previous = position.current;
+
+    // Calculate new position based on player speed (may be slowed down or sped up)
+    if player.playing() {
+        let offset = time.delta_secs() * player.player_speed;
+        player.song_position += Duration::from_secs_f32(offset);
     }
+
+    position.velocity.x = player.player_speed;
+    position.current.x = player.song_position.as_secs_f32();
 }
 
-fn move_camera(mut query: Query<&mut Transform, With<Camera2d>>, player: Res<Player>) {
-    let Ok(mut camera) = query.single_mut() else {
-        return;
-    };
+/// Calculates and adjusts the position for the camera for each frame, interpolating and extrapolating
+/// per frame as needed.
+fn update_camera(time: Res<Time<Fixed>>, camera_position: Res<CameraPosition>, mut q_camera: Query<&mut Transform, With<Camera2d>>) {
+    let f = time.overstep_fraction();
+    const SCROLL_SPEED: f32 = 100.0;
 
-    camera.translation.x = player.song_position.as_millis() as f32 * BASE_MILLI_LENGTH_UNIT;
-}
-
-fn move_cursor(mut query: Query<&mut Transform, With<Cursor>>, player: Res<Player>) {
-    query.single_mut().expect("").translation.x = player.song_position.as_millis() as f32 * BASE_MILLI_LENGTH_UNIT;
-}
-
-fn handle_keyboard(input: Res<ButtonInput<KeyCode>>, player_state: Res<State<PlayerState>>, mut player_events: MessageWriter<PlayerEvent>) {
-    if input.just_pressed(KeyCode::Space) {
-        if player_state.get() == &PlayerState::Playing {
-            player_events.write(PlayerEvent::PausePlaying);
-
-        } else if player_state.get() == &PlayerState::Paused {
-            player_events.write(PlayerEvent::ResumePlaying);
-
-        }
-    } else if input.pressed(KeyCode::ArrowLeft) {
-        player_events.write(PlayerEvent::JumpBackwards(Duration::from_millis(50)));
-
-    } else if input.pressed(KeyCode::ArrowRight) {
-        player_events.write(PlayerEvent::JumpForwards(Duration::from_millis(50)));
-
+    for mut camera in &mut q_camera {
+        camera.translation = SCROLL_SPEED * camera_position.previous.lerp(camera_position.current, f);
     }
-}
-
-fn handle_events(mut events: MessageReader<PlayerEvent>, mut player: ResMut<Player>, mut player_state: ResMut<NextState<PlayerState>>, mut time: ResMut<Time<Virtual>>) {
-    for event in events.read() {
-        match *event {
-            PlayerEvent::StartPlaying => {
-                rewind_player(&mut player, &mut time);
-                resume_play(&mut player, &mut player_state);
-            }
-            PlayerEvent::ResumePlaying => {
-                resume_play(&mut player, &mut player_state);
-            }
-            PlayerEvent::PausePlaying => {
-                player_state.set(PlayerState::Paused);
-                println!("Playing paused");
-            },
-            PlayerEvent::JumpForwards(diff) => {
-                jump_forwards(&mut player, &diff);
-            },
-            PlayerEvent::JumpBackwards(diff) => {
-                jump_backwards(&mut player, &diff);
-            }
-        }
-    }
-}
-
-fn rewind_player(player: &mut ResMut<Player>, _time: &mut ResMut<Time<Virtual>>) {
-    player.rewind();
-}
-
-fn resume_play(player: &mut ResMut<Player>, player_state: &mut ResMut<NextState<PlayerState>>) {
-    player.resume();
-    player_state.set(PlayerState::Playing);
-    println!("Resume playing");
-}
-
-fn jump_forwards(player: &mut ResMut<Player>, diff: &Duration) {
-    player.jump_forwards(diff);
-}
-
-fn jump_backwards(player: &mut ResMut<Player>, diff: &Duration) {
-    player.jump_backwards(diff);
 }
