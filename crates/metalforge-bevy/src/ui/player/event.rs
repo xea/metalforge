@@ -79,7 +79,7 @@ pub fn handle_events(
                 jump_forwards(&mut player, &diff);
             },
             PlayerEvent::JumpBackwards(diff) => {
-                jump_backwards(&mut player, &diff);
+                jump_backwards(&mut engine, &mut player, &diff);
             }
         }
     }
@@ -105,6 +105,7 @@ fn jump_forwards(player: &mut ResMut<SongPlayer>, diff: &Duration) {
     player.jump_forwards(diff);
 }
 
-fn jump_backwards(player: &mut ResMut<SongPlayer>, diff: &Duration) {
+fn jump_backwards(engine: &mut ResMut<UIEngine>, player: &mut ResMut<SongPlayer>, diff: &Duration) {
     player.jump_backwards(diff);
+    engine.channel.send(EngineCommand::Seek(player.song_position))
 }

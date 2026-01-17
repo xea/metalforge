@@ -51,6 +51,7 @@ impl Engine {
             EngineCommand::PlaySong => self.play_song(),
             EngineCommand::Pause => self.pause(),
             EngineCommand::Resume => self.resume(),
+            EngineCommand::Seek(duration) => self.seek(duration),
             EngineCommand::LoadSong => todo!(),
         }
         true
@@ -58,6 +59,7 @@ impl Engine {
 
     fn play_song(&self) {
         // Add a source to the sink
+        /*
         let source = SineWave::new(440.0)
             .take_duration(Duration::from_secs(10))
             .amplify(0.2);
@@ -71,6 +73,7 @@ impl Engine {
             .amplify(0.2);
 
         self.output_stream.mixer().add(alternative);
+         */
 
         let file = File::open("./examples/sample_song/Sandbox.ogg")
             .expect("Failed to open OGG file");
@@ -78,7 +81,8 @@ impl Engine {
         let ogg_source = Decoder::try_from(file)
             .expect("Failed to decode sound file");
 
-        self.output_stream.mixer().add(ogg_source);
+        self.output_sink.append(ogg_source);
+        //self.output_stream.mixer().add(ogg_source);
     }
 
     fn pause(&self) {
@@ -93,6 +97,12 @@ impl Engine {
         }
     }
 
+    fn seek(&self, duration: Duration) {
+        if let Err(err) = self.output_sink.try_seek(duration) {
+            println!("Oh no {:?}", err);
+        }
+    }
+
     fn quit(&self) -> bool {
         self.output_sink.stop();
         false
@@ -102,6 +112,7 @@ impl Engine {
 pub enum EngineCommand {
     LoadSong,
     PlaySong,
+    Seek(Duration),
     Pause,
     Resume,
     Quit
