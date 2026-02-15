@@ -8,4 +8,4 @@ edition = "2024"
 [dependencies]
 crossbeam-channel = "0.5"
 rand = "0.9"
-rodio = { version = "0.21", default-features = false, features = [ "playback", "lewton", "wav" ] }
+rodio = { version = "0.21" }

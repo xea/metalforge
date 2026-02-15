@@ -99,7 +99,7 @@ impl Engine {
 
     fn seek(&self, duration: Duration) {
         if let Err(err) = self.output_sink.try_seek(duration) {
-            println!("Oh no {:?}", err);
+            println!("Failed to seek in song: {:?}", err);
         }
     }
 

@@ -2,6 +2,7 @@ use std::time::Duration;
 use bevy::input::ButtonInput;
 use bevy::prelude::{KeyCode, Message, MessageReader, MessageWriter, NextState, Res, ResMut, State};
 use bevy::time::{Time, Virtual};
+use bevy::window::WindowCloseRequested;
 use metalforge_lib::engine::EngineCommand;
 use crate::ui::player::song_player::{PlayerState, SongPlayer};
 use crate::ui::UIEngine;
@@ -76,12 +77,18 @@ pub fn handle_events(
                 pause_play(&mut engine, &mut player, &mut player_state);
             },
             PlayerEvent::JumpForwards(diff) => {
-                jump_forwards(&mut player, &diff);
+                jump_forwards(&mut engine, &mut player, &diff);
             },
             PlayerEvent::JumpBackwards(diff) => {
                 jump_backwards(&mut engine, &mut player, &diff);
             }
         }
+    }
+}
+
+pub fn handle_window_events(mut window_close_events: MessageReader<WindowCloseRequested>, engine: ResMut<UIEngine>) {
+    for _event in window_close_events.read() {
+        engine.channel.send(EngineCommand::Quit);
     }
 }
 
@@ -101,8 +108,9 @@ fn resume_play(engine: &mut ResMut<UIEngine>, player: &mut ResMut<SongPlayer>, p
     player_state.set(PlayerState::Playing);
 }
 
-fn jump_forwards(player: &mut ResMut<SongPlayer>, diff: &Duration) {
+fn jump_forwards(engine: &mut ResMut<UIEngine>, player: &mut ResMut<SongPlayer>, diff: &Duration) {
     player.jump_forwards(diff);
+    engine.channel.send(EngineCommand::Seek(player.song_position))
 }
 
 fn jump_backwards(engine: &mut ResMut<UIEngine>, player: &mut ResMut<SongPlayer>, diff: &Duration) {
