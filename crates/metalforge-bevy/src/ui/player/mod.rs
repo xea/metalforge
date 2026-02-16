@@ -18,6 +18,9 @@ use bevy::sprite_render::ColorMaterial;
 use bevy::time::{Fixed, Time};
 use rand::random;
 use std::time::Duration;
+use metalforge_lib::song::guitar::GuitarPart;
+use metalforge_lib::song::instrument_part::InstrumentPartType;
+use metalforge_lib::song::song::Song;
 
 /// The main song player plugin, this method is responsible for setting up the camera, rendering the
 /// song view, etc.
@@ -49,8 +52,49 @@ fn setup_player(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    create_grid(&mut commands, &mut meshes, &mut materials);
+    let song = Song::test_song();
+    let instrument = song.instrument_parts.first()
+        .expect("Instrument part could not be found");
+
+    let part = match &instrument.instrument_type {
+        InstrumentPartType::LeadGuitar(part) => part,
+        InstrumentPartType::RhythmGuitar(part) => part,
+        InstrumentPartType::BassGuitar(part) => part,
+    };
+
+    create_notes(&mut commands, &mut meshes, &mut materials, part);
+    //create_grid(&mut commands, &mut meshes, &mut materials);
     create_cursor(&mut commands);
+}
+
+fn create_notes(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<ColorMaterial>>,
+    part: &GuitarPart
+) {
+    let notes = &part.notes;
+
+    let mesh = meshes.add(Rectangle::new(19.0, 19.0));
+
+    let color = Color::srgb(0.7, 0.7, 0.7);
+    let mat_note = materials.add(color);
+
+    let mut i = 0.0;
+
+    for note in notes.iter() {
+        let x = note.time.as_millis() as f32;
+        let y = 0.0;
+
+        commands.spawn((
+            Mesh2d(mesh.clone()),
+            MeshMaterial2d(materials.add(ColorMaterial::from_color(Color::srgb((x / 10.0).sin(), (x / 10.0).cos(), (x / 10.0).sin())))),
+            Transform::from_xyz(x, y, 0.0)
+        ));
+
+        i += 0.1;
+    }
+
 }
 
 fn create_grid(
