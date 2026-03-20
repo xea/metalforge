@@ -7,5 +7,7 @@ edition = "2024"
 
 [dependencies]
 crossbeam-channel = "0.5"
-rand = "0.9"
-rodio = { version = "0.21" }
+musicxml = "1.1"
+rand = "0.10"
+rodio = { version = "0.22" }
+log = "0.4.29"

@@ -3,7 +3,7 @@ use crate::song::instrument_part::{InstrumentPart, InstrumentPartType};
 use crate::song::key::Key;
 use crate::song::metadata::Metadata;
 use std::time::Duration;
-use rand::{random, Rng};
+use rand::{RngExt};
 
 pub struct Song {
     pub metadata: Metadata,

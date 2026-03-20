@@ -1,26 +1,28 @@
 use std::fs::File;
 use std::time::Duration;
 use crossbeam_channel::{Receiver, Sender};
-use rodio::{Decoder, OutputStream, Sink, Source};
-use rodio::source::SineWave;
+use rodio::{Decoder, MixerDeviceSink, Player};
 
+/// `Engine` is responsible for handling input and output devices and managing playback.
 pub struct Engine {
     command_rx: Receiver<EngineCommand>,
     command_tx: Sender<EngineCommand>,
-    output_stream: OutputStream,
-    output_sink: Sink
+    _output_sink: MixerDeviceSink,
+    output_player: Player
 }
 
 impl Engine {
     pub fn new(command_tx: Sender<EngineCommand>, command_rx: Receiver<EngineCommand>) -> Self {
-        let stream_handle = rodio::OutputStreamBuilder::open_default_stream().expect("Cannot open audio stream");
-        let sink = Sink::connect_new(&stream_handle.mixer());
+        let output_sink = rodio::DeviceSinkBuilder::open_default_sink()
+            .expect("Cannot open audio stream");
+
+        let player = rodio::Player::connect_new(&output_sink.mixer());
 
         Self {
             command_rx,
             command_tx,
-            output_stream: stream_handle,
-            output_sink: sink
+            _output_sink: output_sink,
+            output_player: player
         }
     }
 
@@ -59,52 +61,39 @@ impl Engine {
 
     fn play_song(&self) {
         // Add a source to the sink
-        /*
-        let source = SineWave::new(440.0)
-            .take_duration(Duration::from_secs(10))
-            .amplify(0.2);
+        let path = "./examples/sample_song/Sandbox-24bit-44k.ogg";
 
-        self.output_sink.append(source);
-        self.output_sink.set_speed(0.5);
-
-        // And an overlay
-        let alternative = SineWave::new(880.0)
-            .take_duration(Duration::from_secs(1))
-            .amplify(0.2);
-
-        self.output_stream.mixer().add(alternative);
-         */
-
-        let file = File::open("./examples/sample_song/Sandbox.ogg")
+        let file = File::open(path)
             .expect("Failed to open OGG file");
 
-        let ogg_source = Decoder::try_from(file)
+        let file_source = Decoder::try_from(file)
             .expect("Failed to decode sound file");
+            // .amplify(1.0)
+            // .take_duration(Duration::from_millis(10_000));
 
-        self.output_sink.append(ogg_source);
-        //self.output_stream.mixer().add(ogg_source);
+        self.output_player.append(file_source);
     }
 
     fn pause(&self) {
-        self.output_sink.pause();
+        self.output_player.pause();
     }
 
     fn resume(&self) {
-        if self.output_sink.is_paused() {
-            self.output_sink.play();
+        if self.output_player.is_paused() {
+            self.output_player.play();
         } else {
             self.play_song();
         }
     }
 
     fn seek(&self, duration: Duration) {
-        if let Err(err) = self.output_sink.try_seek(duration) {
+        if let Err(err) = self.output_player.try_seek(duration) {
             println!("Failed to seek in song: {:?}", err);
         }
     }
 
     fn quit(&self) -> bool {
-        self.output_sink.stop();
+        self.output_player.stop();
         false
     }
 }
