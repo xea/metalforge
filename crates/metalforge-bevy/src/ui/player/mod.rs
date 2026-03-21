@@ -102,10 +102,10 @@ fn create_note_sprites(commands: &mut Commands, asset_server: &Res<AssetServer>,
     });
 
     for note in &part.notes {
-        let len = note.length.as_millis() as f32;
+        let len = PIXELS_PER_MILLIS * note.length.as_millis() as f32;
         let size = Vec2::new(len, 36.0);
 
-        let x = note.time.as_millis() as f32;
+        let x = PIXELS_PER_MILLIS * note.time.as_millis() as f32;
         let y = string_y_offset(note.string as usize, part.tuning.string_offsets.len());
 
         println!("Note {}/{} time: {:.1}s duration: {:.1}s", note.string, note.fret, note.time.as_secs_f32(), note.length.as_secs_f32());
