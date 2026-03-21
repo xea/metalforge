@@ -10,13 +10,12 @@ use crate::ui::player::song_player::{PlayerState, SongPlayer};
 use bevy::app::{App, FixedUpdate, Startup, Update};
 use bevy::asset::Assets;
 use bevy::camera::{Camera2d, ClearColor, Projection};
-use bevy::color::Color;
+use bevy::color::{Color, Luminance};
 use bevy::math::{Vec2, Vec3};
 use bevy::mesh::{Mesh, Mesh2d};
 use bevy::prelude::{AppExtStates, Commands, MeshMaterial2d, Query, Rectangle, Res, ResMut, Resource, Sprite, Transform, With, Without};
 use bevy::sprite_render::ColorMaterial;
 use bevy::time::{Fixed, Time};
-use rand::random;
 use std::time::Duration;
 use metalforge_lib::song::guitar::GuitarPart;
 use metalforge_lib::song::instrument_part::InstrumentPartType;
@@ -84,9 +83,8 @@ fn setup_player(
     let track_length_px = duration.as_millis() as f32 * PIXELS_PER_MILLIS;
 
     create_background(&mut commands, num_strings, track_length_px);
-    create_strings(&mut commands, num_strings, duration);
+    create_strings(&mut commands, num_strings, track_length_px);
     // create_notes(&mut commands, &mut meshes, &mut materials, part);
-    // create_grid(&mut commands, &mut meshes, &mut materials);
     create_cursor(&mut commands);
 }
 
@@ -132,17 +130,21 @@ fn create_background(commands: &mut Commands, num_strings: usize, track_length_p
     ));
 }
 
-fn create_strings(commands: &mut Commands, num_strings: usize, duration: Duration) {
+fn create_strings(commands: &mut Commands, num_strings: usize, track_length_px: f32) {
     for i in 0..num_strings {
         let y = string_y_offset(i, num_strings);
+        let color = string_color(i).lighter(0.1);
 
+        commands.spawn((
+            Sprite::from_color(color, Vec2::new(track_length_px, 3.0)),
+            Transform::from_xyz(track_length_px / 2.0, y, -1.0)
+        ));
     }
 }
 
 fn string_y_offset(string_index: usize, num_strings: usize) -> f32 {
     let total_height = (num_strings - 1) as f32 * STRING_SPACING;
     string_index as f32 * STRING_SPACING - total_height / 2.0
-
 }
 
 fn string_color(index: usize) -> Color {
@@ -153,29 +155,6 @@ fn string_color(index: usize) -> Color {
         3 => Color::srgb(1.0, 0.50, 0.07),
         4 => Color::srgb(0.18, 0.77, 0.71),
         _ => Color::srgb(0.75, 0.35, 0.90)
-    }
-}
-
-fn create_grid(
-    commands: &mut Commands,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    materials: &mut ResMut<Assets<ColorMaterial>>,
-) {
-    let mesh = meshes.add(Rectangle::new(19.0, 19.0));
-    let material = materials.add(ColorMaterial::from_color(Color::srgb_u8(255, 255, 255)));
-
-    for x in 0..1000 {
-        for y in -5..5 {
-            let r = random::<u16>();
-            let color = Color::srgb((x as f32 / 10.0).sin(), (y as f32 / 10.0).cos(), ((y) as f32 / 10.0).sin());
-            let material = materials.add(ColorMaterial::from_color(color));
-
-            commands.spawn((
-                Mesh2d(mesh.clone()),
-                MeshMaterial2d(material.clone()),
-                Transform::from_xyz(x as f32 * 20.0, y as f32 * 20.0, 0.0)
-            ));
-        }
     }
 }
 
