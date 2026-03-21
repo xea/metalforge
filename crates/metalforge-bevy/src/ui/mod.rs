@@ -7,6 +7,7 @@ use bevy::utils::default;
 use bevy::window::{Window, WindowPlugin, WindowTheme};
 use bevy::winit::WinitSettings;
 use bevy::DefaultPlugins;
+use bevy::image::ImagePlugin;
 use bevy_dev_tools::fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin, FrameTimeGraphConfig};
 use metalforge_lib::engine::EngineChannel;
 
@@ -35,7 +36,7 @@ impl UI {
                 ..default()
             }),
             ..default()
-        }));
+        }).set(ImagePlugin::default_nearest()));
 
         /*
         app.add_plugins(FrameTimeDiagnosticsPlugin {

@@ -8,7 +8,7 @@ use crate::ui::player::event::{handle_events, handle_keyboard, handle_window_eve
 use crate::ui::player::info::{setup_info, update_info};
 use crate::ui::player::song_player::{PlayerState, SongPlayer};
 use bevy::app::{App, FixedUpdate, Startup, Update};
-use bevy::asset::Assets;
+use bevy::asset::{AssetServer, Assets};
 use bevy::camera::{Camera2d, ClearColor, Projection};
 use bevy::color::{Color, Luminance};
 use bevy::math::{Vec2, Vec3};
@@ -17,6 +17,8 @@ use bevy::prelude::{AppExtStates, Commands, MeshMaterial2d, Query, Rectangle, Re
 use bevy::sprite_render::ColorMaterial;
 use bevy::time::{Fixed, Time};
 use std::time::Duration;
+use bevy::sprite::{BorderRect, SpriteImageMode, TextureSlicer};
+use bevy::utils::default;
 use metalforge_lib::song::guitar::GuitarPart;
 use metalforge_lib::song::instrument_part::InstrumentPartType;
 use metalforge_lib::song::song::Song;
@@ -67,6 +69,7 @@ fn setup_player(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
+    assert_server: Res<AssetServer>
 ) {
     let song = Song::test_song();
     let instrument = song.instrument_parts.first()
@@ -85,7 +88,28 @@ fn setup_player(
     create_background(&mut commands, num_strings, track_length_px);
     create_strings(&mut commands, num_strings, track_length_px);
     // create_notes(&mut commands, &mut meshes, &mut materials, part);
+    create_note_sprites(&mut commands, &assert_server);
     create_cursor(&mut commands);
+}
+
+fn create_note_sprites(commands: &mut Commands, asset_server: &Res<AssetServer>) {
+    let handle = asset_server.load("images/8BitButton-64x36.png");
+
+    let size = Vec2::new(256.0, 36.0);
+    let scale_mode = SpriteImageMode::Sliced(TextureSlicer {
+        border: BorderRect::all(8.0),
+        ..default()
+    });
+
+    commands.spawn((
+        Sprite {
+            image: handle,
+            custom_size: Some(size),
+            image_mode: scale_mode,
+            ..default()
+        },
+        Transform::from_xyz(0.0, 0.0, 0.0),
+    ));
 }
 
 fn create_notes(
