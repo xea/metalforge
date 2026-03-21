@@ -16,8 +16,8 @@ pub struct CursorBundle {
 impl CursorBundle {
     pub fn new() -> Self {
         Self {
-            sprite: Sprite::from_color(Color::srgb(1.0, 1.0, 1.0), Vec2::new(1.0, 280.0)),
-            transform: Transform::from_xyz(0.0, 0.0, 0.0),
+            sprite: Sprite::from_color(Color::srgba(0.4, 0.9, 1.0, 0.9), Vec2::new(2.5, 320.0)),
+            transform: Transform::from_xyz(0.0, 0.0, 1.0),
             cursor: Cursor
         }
     }

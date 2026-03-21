@@ -1,17 +1,14 @@
 mod event;
 mod player;
 
-use bevy::app::{App, PluginGroup, Startup};
-use bevy::camera::Camera2d;
-use bevy::prelude::{AppExtStates, Commands, Resource, States};
+use bevy::app::{App, PluginGroup};
+use bevy::prelude::{AppExtStates, Resource, States};
 use bevy::utils::default;
-use bevy::window::{PresentMode, Window, WindowPlugin, WindowTheme};
+use bevy::window::{Window, WindowPlugin, WindowTheme};
 use bevy::winit::WinitSettings;
 use bevy::DefaultPlugins;
-use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
 use bevy_dev_tools::fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin, FrameTimeGraphConfig};
-use bevy_framepace::{debug, FramepacePlugin};
-use metalforge_lib::engine::{EngineChannel};
+use metalforge_lib::engine::EngineChannel;
 
 #[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum AppState {

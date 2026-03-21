@@ -9,11 +9,11 @@ use crate::ui::player::info::{setup_info, update_info};
 use crate::ui::player::song_player::{PlayerState, SongPlayer};
 use bevy::app::{App, FixedUpdate, Startup, Update};
 use bevy::asset::Assets;
-use bevy::camera::{Camera2d, Projection};
+use bevy::camera::{Camera2d, ClearColor, Projection};
 use bevy::color::Color;
-use bevy::math::Vec3;
+use bevy::math::{Vec2, Vec3};
 use bevy::mesh::{Mesh, Mesh2d};
-use bevy::prelude::{AppExtStates, Commands, MeshMaterial2d, Query, Rectangle, Res, ResMut, Resource, Transform, With, Without};
+use bevy::prelude::{AppExtStates, Commands, MeshMaterial2d, Query, Rectangle, Res, ResMut, Resource, Sprite, Transform, With, Without};
 use bevy::sprite_render::ColorMaterial;
 use bevy::time::{Fixed, Time};
 use rand::random;
@@ -22,6 +22,10 @@ use metalforge_lib::song::guitar::GuitarPart;
 use metalforge_lib::song::instrument_part::InstrumentPartType;
 use metalforge_lib::song::song::Song;
 
+const SCROLL_SPEED: f32 = 100.0;
+const PIXELS_PER_MILLIS: f32 = SCROLL_SPEED / 1000.0;
+const STRING_SPACING: f32 = 45.0;
+
 /// The main song player plugin, this method is responsible for setting up the camera, rendering the
 /// song view, etc.
 pub fn player_plugin(app: &mut App) {
@@ -29,6 +33,7 @@ pub fn player_plugin(app: &mut App) {
         .insert_state(PlayerState::Paused)
         .insert_resource(SongPlayer::default())
         .insert_resource(CameraPosition::default())
+        .insert_resource(ClearColor(Color::srgb(0.06, 0.06, 0.10)))
         .add_systems(Startup, (setup_player, setup_info, create_camera))
         .add_systems(Update, (handle_keyboard, handle_events))
         .add_systems(FixedUpdate, (update_position, update_info))
@@ -74,7 +79,13 @@ fn setup_player(
         InstrumentPartType::BassGuitar(part) => part,
     };
 
-    create_notes(&mut commands, &mut meshes, &mut materials, part);
+    let num_strings = part.tuning.string_offsets.len();
+    let duration = song.metadata.length;
+    let track_length_px = duration.as_millis() as f32 * PIXELS_PER_MILLIS;
+
+    create_background(&mut commands, num_strings, track_length_px);
+    create_strings(&mut commands, num_strings, duration);
+    // create_notes(&mut commands, &mut meshes, &mut materials, part);
     // create_grid(&mut commands, &mut meshes, &mut materials);
     create_cursor(&mut commands);
 }
@@ -106,7 +117,43 @@ fn create_notes(
 
         i += 0.1;
     }
+}
 
+fn create_background(commands: &mut Commands, num_strings: usize, track_length_px: f32) {
+    let total_height_px = (num_strings as f32 + 1.5) * STRING_SPACING;
+    let background_width_px = track_length_px + 2000.0;
+
+    commands.spawn((
+        Sprite::from_color(
+            Color::srgba(0.08, 0.09, 0.16, 0.85),
+            Vec2::new(background_width_px, total_height_px)
+        ),
+        Transform::from_xyz(track_length_px / 2.0, 0.0, -3.0)
+    ));
+}
+
+fn create_strings(commands: &mut Commands, num_strings: usize, duration: Duration) {
+    for i in 0..num_strings {
+        let y = string_y_offset(i, num_strings);
+
+    }
+}
+
+fn string_y_offset(string_index: usize, num_strings: usize) -> f32 {
+    let total_height = (num_strings - 1) as f32 * STRING_SPACING;
+    string_index as f32 * STRING_SPACING - total_height / 2.0
+
+}
+
+fn string_color(index: usize) -> Color {
+    match index % 6 {
+        0 => Color::srgb(0.91, 0.28, 0.33),
+        1 => Color::srgb(0.98, 0.86, 0.36),
+        2 => Color::srgb(0.19, 0.52, 0.99),
+        3 => Color::srgb(1.0, 0.50, 0.07),
+        4 => Color::srgb(0.18, 0.77, 0.71),
+        _ => Color::srgb(0.75, 0.35, 0.90)
+    }
 }
 
 fn create_grid(
@@ -163,7 +210,6 @@ fn update_position(time: Res<Time>, mut camera_position: ResMut<CameraPosition>,
 /// per frame as needed.
 fn update_camera(time: Res<Time<Fixed>>, camera_position: Res<CameraPosition>, mut q_camera: Query<(&mut Transform, &mut Projection), (With<Camera2d>, Without<Cursor>)>, mut q_cursor: Query<&mut Transform, (With<Cursor>, Without<Camera2d>)>) {
     let f = time.overstep_fraction();
-    const SCROLL_SPEED: f32 = 100.0;
 
     let mut camera = q_camera.single_mut().unwrap();
     let mut cursor = q_cursor.single_mut().unwrap();
