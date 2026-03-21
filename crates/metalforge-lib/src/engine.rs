@@ -92,6 +92,10 @@ impl Engine {
         }
     }
 
+    fn change_speed(&mut self, speed: f32) {
+        self.output_player.set_speed(speed);
+    }
+
     fn quit(&self) -> bool {
         self.output_player.stop();
         false

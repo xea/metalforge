@@ -8,6 +8,10 @@ use crate::ui::player::CameraPosition;
 use crate::ui::player::song_player::{PlayerState, SongPlayer};
 use crate::ui::UIEngine;
 
+const SPEED_STEP: f32 = 0.1;
+const MIN_SPEED: f32 = 0.1;
+const MAX_SPEED: f32 = 2.0;
+
 const ZOOM_STEP: f32 = 0.05;
 const MIN_ZOOM: f32 = 0.2;
 const MAX_ZOOM: f32 = 5.0;
@@ -20,11 +24,16 @@ pub enum PlayerEvent {
     PausePlaying,
     /// Resume playing from the last paused position
     ResumePlaying,
+    /// Jump ahead in the song by the specified duration
     JumpForwards(Duration),
+    /// Jump back in the song by the specified duration
     JumpBackwards(Duration),
     ZoomIn,
     ZoomOut,
-    ResetZoom
+    ResetZoom,
+    IncreaseSpeed,
+    DecreaseSpeed,
+    ResetSpeed
 }
 
 pub fn handle_keyboard(
@@ -63,6 +72,15 @@ pub fn handle_keyboard(
         } else {
             player_events.write(PlayerEvent::JumpForwards(Duration::from_millis(SCROLL_DISTANCE_MILLIS)));
         }
+    }
+
+    // Handle speed events
+    if input.just_pressed(KeyCode::ArrowUp) {
+        player_events.write(PlayerEvent::IncreaseSpeed);
+    } else if input.just_pressed(KeyCode::ArrowDown) {
+        player_events.write(PlayerEvent::DecreaseSpeed);
+    } else if input.just_pressed(KeyCode::Slash) {
+        player_events.write(PlayerEvent::ResetSpeed);
     }
 
     // Handle zoom events
@@ -109,6 +127,15 @@ pub fn handle_events(
             }
             PlayerEvent::ResetZoom => {
                 camera.zoom = 1.0;
+            }
+            PlayerEvent::IncreaseSpeed => {
+                player.player_speed = (player.player_speed + SPEED_STEP).min(MAX_SPEED);
+            }
+            PlayerEvent::DecreaseSpeed => {
+                player.player_speed = (player.player_speed - SPEED_STEP).max(MIN_SPEED);
+            }
+            PlayerEvent::ResetSpeed => {
+                player.player_speed = 1.0;
             }
         }
     }

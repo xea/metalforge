@@ -15,13 +15,14 @@ impl Song {
     pub fn test_song() -> Self {
         let mut rng = rand::rng();
 
-        let notes = (0..1000).map(|i| {
+        let notes = (0..100).map(|i| {
             GuitarNote {
-                string: rng.random_range(0..7),
+                string: rng.random_range(0..6),
                 fret: rng.random_range(0..25),
-                finger: rng.random_range(0..6),
+                finger: rng.random_range(0..5),
                 time: Duration::from_millis(i * 1000),
-                length: Duration::from_millis(rng.random_range(0..6) * 100),
+                // length: Duration::from_millis(rng.random_range(0..30) * 100),
+                length: Duration::from_secs(1),
                 technique: GuitarTechnique::None,
                 slide_to: 0
             }

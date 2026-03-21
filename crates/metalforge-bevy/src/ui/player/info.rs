@@ -20,7 +20,10 @@ pub fn setup_info(mut commands: Commands) {
 
 pub fn update_info(player: Res<SongPlayer>, mut query: Query<&mut Text, With<UILabel>>) {
     let time = player.song_position.as_secs_f32();
-    let time_label = format!("{:01}:{:02}:{:02}.{:03}",
+    let speed = 100.0 * player.player_speed;
+
+    let time_label = format!("{:.2}% {:01}:{:02}:{:02}.{:03}",
+                             speed,
                              (time / 3600.0) as u8,
                              (time % 3600.0 / 60.0) as u8,
                              (time % 60.0) as u8,

@@ -13,7 +13,7 @@ use bevy::camera::{Camera2d, ClearColor, Projection};
 use bevy::color::{Color, Luminance};
 use bevy::math::{Vec2, Vec3};
 use bevy::mesh::{Mesh, Mesh2d};
-use bevy::prelude::{AppExtStates, Commands, MeshMaterial2d, Query, Rectangle, Res, ResMut, Resource, Sprite, Transform, With, Without};
+use bevy::prelude::{not, AppExtStates, Commands, MeshMaterial2d, Query, Rectangle, Res, ResMut, Resource, Sprite, Transform, With, Without};
 use bevy::sprite_render::ColorMaterial;
 use bevy::time::{Fixed, Time};
 use std::time::Duration;
@@ -87,29 +87,70 @@ fn setup_player(
 
     create_background(&mut commands, num_strings, track_length_px);
     create_strings(&mut commands, num_strings, track_length_px);
+    create_guide_lines(&mut commands, &song, &part);
     // create_notes(&mut commands, &mut meshes, &mut materials, part);
-    create_note_sprites(&mut commands, &assert_server);
+    create_note_sprites(&mut commands, &assert_server, part);
     create_cursor(&mut commands);
 }
 
-fn create_note_sprites(commands: &mut Commands, asset_server: &Res<AssetServer>) {
+fn create_note_sprites(commands: &mut Commands, asset_server: &Res<AssetServer>, part: &GuitarPart) {
     let handle = asset_server.load("images/8BitButton-64x36.png");
 
-    let size = Vec2::new(256.0, 36.0);
     let scale_mode = SpriteImageMode::Sliced(TextureSlicer {
         border: BorderRect::all(8.0),
         ..default()
     });
 
-    commands.spawn((
-        Sprite {
-            image: handle,
-            custom_size: Some(size),
-            image_mode: scale_mode,
-            ..default()
-        },
-        Transform::from_xyz(0.0, 0.0, 0.0),
-    ));
+    for note in &part.notes {
+        let len = note.length.as_millis() as f32;
+        let size = Vec2::new(len, 36.0);
+
+        let x = note.time.as_millis() as f32;
+        let y = string_y_offset(note.string as usize, part.tuning.string_offsets.len());
+
+        println!("Note {}/{} time: {:.1}s duration: {:.1}s", note.string, note.fret, note.time.as_secs_f32(), note.length.as_secs_f32());
+
+        commands.spawn((
+            Sprite {
+                image: handle.clone(),
+                custom_size: Some(size),
+                image_mode: scale_mode.clone(),
+                ..default()
+            },
+            Transform::from_xyz(x + (len / 2.0), y, 0.0),
+        ));
+
+    }
+}
+
+fn create_guide_lines(commands: &mut Commands, song: &Song, part: &GuitarPart) {
+    let notch_width_px = 1.0;
+    let short_notch_height_px = 10.0;
+    let tall_notch_height_px = short_notch_height_px * 2.0;
+
+    let notch_count = song.metadata.length.as_millis() / 10;
+    let total_height_px = (part.tuning.string_offsets.len() as f32 + 1.5) * STRING_SPACING;
+
+    let y = -total_height_px / 2.0;
+    let z = 0.1;
+
+    for i in 0..notch_count {
+        let x = i as f32 * 10.0;
+        let notch_height_px = if i % 10 == 0 {
+            tall_notch_height_px
+        } else {
+            short_notch_height_px
+        };
+
+        commands.spawn((
+            Sprite::from_color(
+                Color::srgba(1.0, 1.0, 1.0, 0.85),
+                Vec2::new(notch_width_px, notch_height_px)
+            ),
+            Transform::from_xyz(x, y, z)
+        ));
+
+    }
 }
 
 fn create_notes(
