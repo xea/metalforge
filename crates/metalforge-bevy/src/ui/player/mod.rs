@@ -3,17 +3,17 @@ mod event;
 mod cursor;
 mod info;
 
-use crate::ui::player::cursor::CursorBundle;
+use crate::ui::player::cursor::{Cursor, CursorBundle};
 use crate::ui::player::event::{handle_events, handle_keyboard, handle_window_events, PlayerEvent};
 use crate::ui::player::info::{setup_info, update_info};
 use crate::ui::player::song_player::{PlayerState, SongPlayer};
 use bevy::app::{App, FixedUpdate, Startup, Update};
 use bevy::asset::Assets;
-use bevy::camera::Camera2d;
+use bevy::camera::{Camera2d, Projection};
 use bevy::color::Color;
 use bevy::math::Vec3;
 use bevy::mesh::{Mesh, Mesh2d};
-use bevy::prelude::{AppExtStates, Commands, MeshMaterial2d, Query, Rectangle, Res, ResMut, Resource, Transform, With};
+use bevy::prelude::{AppExtStates, Commands, MeshMaterial2d, Query, Rectangle, Res, ResMut, Resource, Transform, With, Without};
 use bevy::sprite_render::ColorMaterial;
 use bevy::time::{Fixed, Time};
 use rand::random;
@@ -40,11 +40,23 @@ pub fn player_plugin(app: &mut App) {
 
 /// This structure is responsible for tracking the camera and translating the player state into camera
 /// coordinates. `current`, `previous`, and `velocity` are used for frame interpolation/extrapolation
-#[derive(Resource, Default)]
+#[derive(Resource)]
 struct CameraPosition {
     current: Vec3,
     previous: Vec3,
-    velocity: Vec3
+    velocity: Vec3,
+    zoom: f32
+}
+
+impl Default for CameraPosition {
+    fn default() -> Self {
+        Self {
+            current: Vec3::ZERO,
+            previous: Vec3::ZERO,
+            velocity: Vec3::ZERO,
+            zoom: 1.0
+        }
+    }
 }
 
 fn setup_player(
@@ -63,7 +75,7 @@ fn setup_player(
     };
 
     create_notes(&mut commands, &mut meshes, &mut materials, part);
-    //create_grid(&mut commands, &mut meshes, &mut materials);
+    // create_grid(&mut commands, &mut meshes, &mut materials);
     create_cursor(&mut commands);
 }
 
@@ -149,11 +161,17 @@ fn update_position(time: Res<Time>, mut camera_position: ResMut<CameraPosition>,
 
 /// Calculates and adjusts the position for the camera for each frame, interpolating and extrapolating
 /// per frame as needed.
-fn update_camera(time: Res<Time<Fixed>>, camera_position: Res<CameraPosition>, mut q_camera: Query<&mut Transform, With<Camera2d>>) {
+fn update_camera(time: Res<Time<Fixed>>, camera_position: Res<CameraPosition>, mut q_camera: Query<(&mut Transform, &mut Projection), (With<Camera2d>, Without<Cursor>)>, mut q_cursor: Query<&mut Transform, (With<Cursor>, Without<Camera2d>)>) {
     let f = time.overstep_fraction();
     const SCROLL_SPEED: f32 = 100.0;
 
-    for mut camera in &mut q_camera {
-        camera.translation = SCROLL_SPEED * camera_position.previous.lerp(camera_position.current, f);
+    let mut camera = q_camera.single_mut().unwrap();
+    let mut cursor = q_cursor.single_mut().unwrap();
+
+    camera.0.translation = SCROLL_SPEED * camera_position.previous.lerp(camera_position.current, f);
+    cursor.translation = camera.0.translation;
+
+    if let Projection::Orthographic(ref mut ortho) = *camera.1 {
+        ortho.scale = camera_position.zoom;
     }
 }

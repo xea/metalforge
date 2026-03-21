@@ -172,26 +172,6 @@ fn setup_limiter(mut framepace_settings: ResMut<FramepaceSettings>) {
     framepace_settings.limiter = Limiter::from_framerate(60.0)
 }
 
-#[derive(Component)]
-pub struct Cursor;
-
-#[derive(Bundle)]
-pub struct CursorBundle {
-    sprite: Sprite,
-    transform: Transform,
-    cursor: Cursor
-}
-
-impl CursorBundle {
-    pub fn new() -> Self {
-        Self {
-            sprite: Sprite::from_color(Color::srgb(1.0, 1.0, 1.0), Vec2::new(1.0, 280.0)),
-            transform: Transform::from_xyz(0.0, 0.0, 0.0),
-            cursor: Cursor
-        }
-    }
-}
-
 #[derive(Bundle)]
 struct TitleText {
     text: Text,

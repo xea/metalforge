@@ -4,8 +4,13 @@ use bevy::prelude::{KeyCode, Message, MessageReader, MessageWriter, NextState, R
 use bevy::time::{Time, Virtual};
 use bevy::window::WindowCloseRequested;
 use metalforge_lib::engine::EngineCommand;
+use crate::ui::player::CameraPosition;
 use crate::ui::player::song_player::{PlayerState, SongPlayer};
 use crate::ui::UIEngine;
+
+const ZOOM_STEP: f32 = 0.05;
+const MIN_ZOOM: f32 = 0.2;
+const MAX_ZOOM: f32 = 5.0;
 
 #[derive(Message, Copy, Clone)]
 pub enum PlayerEvent {
@@ -17,6 +22,9 @@ pub enum PlayerEvent {
     ResumePlaying,
     JumpForwards(Duration),
     JumpBackwards(Duration),
+    ZoomIn,
+    ZoomOut,
+    ResetZoom
 }
 
 pub fn handle_keyboard(
@@ -24,9 +32,10 @@ pub fn handle_keyboard(
     player_state: Res<State<PlayerState>>,
     mut player_events: MessageWriter<PlayerEvent>
 ) {
-    const SCROLL_DISTANCE: u64 = 50;
-    const JUMP_DISTANCE: u64 = 500;
+    const SCROLL_DISTANCE_MILLIS: u64 = 250;
+    const JUMP_DISTANCE_MILLIS: u64 = 1000;
 
+    // Handle start/stop/pause/restart events
     if input.just_pressed(KeyCode::Space) {
         // Pressing space will start/resume playing from the current position
         if player_state.get() == &PlayerState::Playing {
@@ -43,17 +52,26 @@ pub fn handle_keyboard(
     } else if input.pressed(KeyCode::ArrowLeft) {
         // Pressing left jumps back in time
         if input.pressed(KeyCode::ShiftLeft) || input.pressed(KeyCode::ShiftRight) {
-            player_events.write(PlayerEvent::JumpBackwards(Duration::from_millis(JUMP_DISTANCE)));
+            player_events.write(PlayerEvent::JumpBackwards(Duration::from_millis(JUMP_DISTANCE_MILLIS)));
         } else {
-            player_events.write(PlayerEvent::JumpBackwards(Duration::from_millis(SCROLL_DISTANCE)));
+            player_events.write(PlayerEvent::JumpBackwards(Duration::from_millis(SCROLL_DISTANCE_MILLIS)));
         }
     } else if input.pressed(KeyCode::ArrowRight) {
         // Pressing right jumps forward in time
         if input.pressed(KeyCode::ShiftRight) || input.pressed(KeyCode::ShiftLeft) {
-            player_events.write(PlayerEvent::JumpForwards(Duration::from_millis(JUMP_DISTANCE)));
+            player_events.write(PlayerEvent::JumpForwards(Duration::from_millis(JUMP_DISTANCE_MILLIS)));
         } else {
-            player_events.write(PlayerEvent::JumpForwards(Duration::from_millis(SCROLL_DISTANCE)));
+            player_events.write(PlayerEvent::JumpForwards(Duration::from_millis(SCROLL_DISTANCE_MILLIS)));
         }
+    }
+
+    // Handle zoom events
+    if input.pressed(KeyCode::Equal) {
+        player_events.write(PlayerEvent::ZoomIn);
+    } else if input.pressed(KeyCode::Minus) {
+        player_events.write(PlayerEvent::ZoomOut);
+    } else if input.pressed(KeyCode::Digit0) {
+        player_events.write(PlayerEvent::ResetZoom);
     }
 }
 
@@ -61,6 +79,7 @@ pub fn handle_events(
     mut events: MessageReader<PlayerEvent>,
     mut engine: ResMut<UIEngine>,
     mut player: ResMut<SongPlayer>,
+    mut camera: ResMut<CameraPosition>,
     mut player_state: ResMut<NextState<PlayerState>>,
     mut time: ResMut<Time<Virtual>>
 ) {
@@ -81,6 +100,15 @@ pub fn handle_events(
             },
             PlayerEvent::JumpBackwards(diff) => {
                 jump_backwards(&mut engine, &mut player, &diff);
+            }
+            PlayerEvent::ZoomIn => {
+                camera.zoom = (camera.zoom - ZOOM_STEP).max(MIN_ZOOM);
+            }
+            PlayerEvent::ZoomOut => {
+                camera.zoom = (camera.zoom + ZOOM_STEP).min(MAX_ZOOM);
+            }
+            PlayerEvent::ResetZoom => {
+                camera.zoom = 1.0;
             }
         }
     }
