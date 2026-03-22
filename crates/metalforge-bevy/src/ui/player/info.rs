@@ -1,6 +1,6 @@
-use bevy::prelude::{default, Commands, Component, Query, Res, Text, With};
-use bevy::ui::{percent, px, Node, PositionType};
 use crate::ui::player::song_player::SongPlayer;
+use bevy::prelude::{default, Commands, Component, Query, Res, Text, With};
+use bevy::ui::{px, Node, PositionType};
 
 #[derive(Component)]
 pub struct UILabel;

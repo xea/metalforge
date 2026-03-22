@@ -12,16 +12,16 @@ use bevy::asset::{AssetServer, Assets};
 use bevy::camera::{Camera2d, ClearColor, Projection};
 use bevy::color::{Color, Luminance};
 use bevy::math::{Vec2, Vec3};
-use bevy::mesh::{Mesh, Mesh2d};
-use bevy::prelude::{not, AppExtStates, Commands, MeshMaterial2d, Query, Rectangle, Res, ResMut, Resource, Sprite, Transform, With, Without};
+use bevy::mesh::Mesh;
+use bevy::prelude::{AppExtStates, Commands, Query, Res, ResMut, Resource, Sprite, Transform, With, Without};
+use bevy::sprite::{BorderRect, SpriteImageMode, TextureSlicer};
 use bevy::sprite_render::ColorMaterial;
 use bevy::time::{Fixed, Time};
-use std::time::Duration;
-use bevy::sprite::{BorderRect, SpriteImageMode, TextureSlicer};
 use bevy::utils::default;
 use metalforge_lib::song::guitar::GuitarPart;
 use metalforge_lib::song::instrument_part::InstrumentPartType;
 use metalforge_lib::song::song::Song;
+use std::time::Duration;
 
 const SCROLL_SPEED: f32 = 100.0;
 const PIXELS_PER_MILLIS: f32 = SCROLL_SPEED / 1000.0;
@@ -67,8 +67,8 @@ impl Default for CameraPosition {
 
 fn setup_player(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut _meshes: ResMut<Assets<Mesh>>,
+    mut _materials: ResMut<Assets<ColorMaterial>>,
     assert_server: Res<AssetServer>
 ) {
     let song = Song::test_song();
@@ -87,8 +87,7 @@ fn setup_player(
 
     create_background(&mut commands, num_strings, track_length_px);
     create_strings(&mut commands, num_strings, track_length_px);
-    create_guide_lines(&mut commands, &song, &part);
-    // create_notes(&mut commands, &mut meshes, &mut materials, part);
+    create_guide_lines(&mut commands, &song, part);
     create_note_sprites(&mut commands, &assert_server, part);
     create_cursor(&mut commands);
 }
@@ -107,8 +106,6 @@ fn create_note_sprites(commands: &mut Commands, asset_server: &Res<AssetServer>,
 
         let x = PIXELS_PER_MILLIS * note.time.as_millis() as f32;
         let y = string_y_offset(note.string as usize, part.tuning.string_offsets.len());
-
-        println!("Note {}/{} time: {:.1}s duration: {:.1}s", note.string, note.fret, note.time.as_secs_f32(), note.length.as_secs_f32());
 
         commands.spawn((
             Sprite {
@@ -150,35 +147,6 @@ fn create_guide_lines(commands: &mut Commands, song: &Song, part: &GuitarPart) {
             Transform::from_xyz(x, y, z)
         ));
 
-    }
-}
-
-fn create_notes(
-    commands: &mut Commands,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    materials: &mut ResMut<Assets<ColorMaterial>>,
-    part: &GuitarPart
-) {
-    let notes = &part.notes;
-
-    let mesh = meshes.add(Rectangle::new(19.0, 19.0));
-
-    let color = Color::srgb(0.7, 0.7, 0.7);
-    let mat_note = materials.add(color);
-
-    let mut i = 0.0;
-
-    for note in notes.iter() {
-        let x = note.time.as_millis() as f32;
-        let y = 0.0;
-
-        commands.spawn((
-            Mesh2d(mesh.clone()),
-            MeshMaterial2d(materials.add(ColorMaterial::from_color(Color::srgb((x / 10.0).sin(), (x / 10.0).cos(), (x / 10.0).sin())))),
-            Transform::from_xyz(x, y, 0.0)
-        ));
-
-        i += 0.1;
     }
 }
 
@@ -229,7 +197,7 @@ fn create_cursor(commands: &mut Commands) {
 
 fn create_camera(mut commands: Commands) {
     commands.spawn((
-        Camera2d::default(),
+        Camera2d,
     ));
 }
 

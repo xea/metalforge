@@ -1,4 +1,5 @@
 use crossbeam_channel::bounded;
+use log::info;
 use metalforge_lib::engine::{Engine, EngineChannel, EngineCommand};
 use crate::ui::UI;
 
@@ -19,7 +20,7 @@ fn main() {
 
     ui.run();
 
-    println!("Shutting down...");
+    info!("Shutting down...");
 
     let _ = control_tx.send(EngineCommand::Quit);
     engine_thread.join().expect("Failed to join engine thread");

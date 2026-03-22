@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::time::Duration;
 use crossbeam_channel::{Receiver, Sender};
+use log::{debug, error};
 use rodio::{Decoder, MixerDeviceSink, Player};
 
 /// `Engine` is responsible for handling input and output devices and managing playback.
@@ -16,7 +17,7 @@ impl Engine {
         let output_sink = rodio::DeviceSinkBuilder::open_default_sink()
             .expect("Cannot open audio stream");
 
-        let player = rodio::Player::connect_new(&output_sink.mixer());
+        let player = rodio::Player::connect_new(output_sink.mixer());
 
         Self {
             command_rx,
@@ -35,13 +36,8 @@ impl Engine {
     }
 
     pub fn main_loop(&self) {
-        loop {
-            if let Ok(command) = self.command_rx.recv() {
-                if !self.handle_command(&command) {
-                    break;
-                }
-            } else {
-                // Oh no, something bad.
+        while let Ok(command) = self.command_rx.recv() {
+            if !self.handle_command(&command) {
                 break;
             }
         }
@@ -54,6 +50,7 @@ impl Engine {
             EngineCommand::Pause => self.pause(),
             EngineCommand::Resume => self.resume(),
             EngineCommand::Seek(duration) => self.seek(duration),
+            EngineCommand::ChangeSpeed(speed) => self.change_speed(speed),
             EngineCommand::LoadSong => todo!(),
         }
         true
@@ -88,11 +85,13 @@ impl Engine {
 
     fn seek(&self, duration: Duration) {
         if let Err(err) = self.output_player.try_seek(duration) {
-            println!("Failed to seek in song: {:?}", err);
+            error!("Failed to seek in song: {:?}", err);
+        } else {
+            debug!("Seeked song: {:?}", duration);
         }
     }
 
-    fn change_speed(&mut self, speed: f32) {
+    fn change_speed(&self, speed: f32) {
         self.output_player.set_speed(speed);
     }
 
@@ -108,6 +107,7 @@ pub enum EngineCommand {
     Seek(Duration),
     Pause,
     Resume,
+    ChangeSpeed(f32),
     Quit
 }
 

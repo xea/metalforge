@@ -43,7 +43,7 @@ impl UI {
             max_history_length: 60,
             smoothing_factor: 0.0,
         });
-        
+
         app.add_plugins((FramepacePlugin, debug::DiagnosticsPlugin));
          */
 

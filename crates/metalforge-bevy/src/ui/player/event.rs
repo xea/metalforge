@@ -28,11 +28,17 @@ pub enum PlayerEvent {
     JumpForwards(Duration),
     /// Jump back in the song by the specified duration
     JumpBackwards(Duration),
+    /// Increase zoom in player view
     ZoomIn,
+    /// Decrease zoom in player view
     ZoomOut,
+    /// Reset zoom to original value
     ResetZoom,
+    /// Increase playback speed by one increment
     IncreaseSpeed,
+    /// Decrease playback speed by one increment
     DecreaseSpeed,
+    /// Reset playback speed to its original value
     ResetSpeed
 }
 
@@ -54,7 +60,7 @@ pub fn handle_keyboard(
             player_events.write(PlayerEvent::ResumePlaying);
 
         }
-    } else if input.pressed(KeyCode::KeyR) {
+    } else if input.just_pressed(KeyCode::KeyR) {
         // Pressing R resets the player
         player_events.write(PlayerEvent::StartPlaying);
 
@@ -104,7 +110,7 @@ pub fn handle_events(
     for event in events.read() {
         match *event {
             PlayerEvent::StartPlaying => {
-                rewind_player(&mut player, &mut time);
+                rewind_player(&mut engine, &mut player, &mut time);
                 resume_play(&mut engine, &mut player, &mut player_state);
             }
             PlayerEvent::ResumePlaying => {
@@ -129,13 +135,14 @@ pub fn handle_events(
                 camera.zoom = 1.0;
             }
             PlayerEvent::IncreaseSpeed => {
-                player.player_speed = (player.player_speed + SPEED_STEP).min(MAX_SPEED);
+                increase_speed(&mut engine, &mut player);
             }
             PlayerEvent::DecreaseSpeed => {
-                player.player_speed = (player.player_speed - SPEED_STEP).max(MIN_SPEED);
+                decrease_speed(&mut engine, &mut player);
             }
             PlayerEvent::ResetSpeed => {
                 player.player_speed = 1.0;
+                reset_speed(&mut engine, &mut player);
             }
         }
     }
@@ -147,7 +154,8 @@ pub fn handle_window_events(mut window_close_events: MessageReader<WindowCloseRe
     }
 }
 
-fn rewind_player(player: &mut ResMut<SongPlayer>, _time: &mut ResMut<Time<Virtual>>) {
+fn rewind_player(engine: &mut ResMut<UIEngine>, player: &mut ResMut<SongPlayer>, _time: &mut ResMut<Time<Virtual>>) {
+    engine.channel.send(EngineCommand::Seek(Duration::ZERO));
     player.rewind();
 }
 
@@ -164,11 +172,26 @@ fn resume_play(engine: &mut ResMut<UIEngine>, player: &mut ResMut<SongPlayer>, p
 }
 
 fn jump_forwards(engine: &mut ResMut<UIEngine>, player: &mut ResMut<SongPlayer>, diff: &Duration) {
+    engine.channel.send(EngineCommand::Seek(player.song_position));
     player.jump_forwards(diff);
-    engine.channel.send(EngineCommand::Seek(player.song_position))
 }
 
 fn jump_backwards(engine: &mut ResMut<UIEngine>, player: &mut ResMut<SongPlayer>, diff: &Duration) {
+    engine.channel.send(EngineCommand::Seek(player.song_position));
     player.jump_backwards(diff);
-    engine.channel.send(EngineCommand::Seek(player.song_position))
+}
+
+fn increase_speed(engine: &mut ResMut<UIEngine>, player: &mut ResMut<SongPlayer>) {
+    player.player_speed = (player.player_speed + SPEED_STEP).min(MAX_SPEED);
+    engine.channel.send(EngineCommand::ChangeSpeed(player.player_speed));
+}
+
+fn decrease_speed(engine: &mut ResMut<UIEngine>, player: &mut ResMut<SongPlayer>) {
+    player.player_speed = (player.player_speed - SPEED_STEP).max(MIN_SPEED);
+    engine.channel.send(EngineCommand::ChangeSpeed(player.player_speed));
+}
+
+fn reset_speed(engine: &mut ResMut<UIEngine>, player: &mut ResMut<SongPlayer>) {
+    player.player_speed = 1.0;
+    engine.channel.send(EngineCommand::ChangeSpeed(player.player_speed));
 }
