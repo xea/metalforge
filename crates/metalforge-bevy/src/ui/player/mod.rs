@@ -13,8 +13,8 @@ use bevy::camera::{Camera2d, ClearColor, Projection};
 use bevy::color::{Color, Luminance};
 use bevy::math::{Vec2, Vec3};
 use bevy::mesh::Mesh;
-use bevy::prelude::{AppExtStates, Commands, Query, Res, ResMut, Resource, Sprite, Transform, With, Without};
-use bevy::sprite::{BorderRect, SpriteImageMode, TextureSlicer};
+use bevy::prelude::{AppExtStates, Commands, LineBreak, Query, Res, ResMut, Resource, Sprite, Transform, With, Without};
+use bevy::sprite::{BorderRect, SpriteImageMode, Text2d, Text2dShadow, TextureSlicer};
 use bevy::sprite_render::ColorMaterial;
 use bevy::time::{Fixed, Time};
 use bevy::utils::default;
@@ -22,6 +22,8 @@ use metalforge_lib::song::guitar::GuitarPart;
 use metalforge_lib::song::instrument_part::InstrumentPartType;
 use metalforge_lib::song::song::Song;
 use std::time::Duration;
+use bevy::text::{Justify, TextBounds, TextLayout};
+use bevy::text::Justify::Justified;
 
 const SCROLL_SPEED: f32 = 100.0;
 const PIXELS_PER_MILLIS: f32 = SCROLL_SPEED / 1000.0;
@@ -115,7 +117,17 @@ fn create_note_sprites(commands: &mut Commands, asset_server: &Res<AssetServer>,
                 ..default()
             },
             Transform::from_xyz(x + (len / 2.0), y, 0.0),
-        ));
+        )).with_children(|parent| {
+            parent.spawn((
+                Text2d::new(format!("{}", note.fret)),
+                TextBounds::new_horizontal(size.x - 5.0),
+                TextLayout::new(Justify::Left, LineBreak::NoWrap),
+                Text2dShadow {
+                    offset: Vec2::new(1.0, -1.0),
+                    ..default()
+                },
+            ));
+        });
 
     }
 }
