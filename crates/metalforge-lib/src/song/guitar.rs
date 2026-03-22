@@ -37,6 +37,8 @@ impl CommonTunings {
 pub struct GuitarPart {
     /// The notes and chords to be played during this part
     pub notes: Vec<GuitarNote>,
+    /// The beats of this song
+    pub beats: Vec<Beat>,
     /// The tuning that should be used for this guitar part
     pub tuning: GuitarTuning,
     /// The index of the fret the capo should be placed at. 0 means open strings, i.e. no capo
@@ -85,4 +87,9 @@ pub enum GuitarTechnique {
     // Bass techniques
     Slap,
     Pop,
+}
+
+pub struct Beat {
+    pub time: Duration,
+    pub measure: Option<usize>
 }

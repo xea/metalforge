@@ -39,7 +39,11 @@ pub enum PlayerEvent {
     /// Decrease playback speed by one increment
     DecreaseSpeed,
     /// Reset playback speed to its original value
-    ResetSpeed
+    ResetSpeed,
+
+    /// TODO
+    MarkLoopStart(Duration),
+    MarkLoopEnd(Duration),
 }
 
 pub fn handle_keyboard(
@@ -143,7 +147,8 @@ pub fn handle_events(
             PlayerEvent::ResetSpeed => {
                 player.player_speed = 1.0;
                 reset_speed(&mut engine, &mut player);
-            }
+            },
+            PlayerEvent::MarkLoopStart(_) | PlayerEvent::MarkLoopEnd(_) => todo!("Not yet implemented!"),
         }
     }
 }

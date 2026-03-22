@@ -23,7 +23,6 @@ use metalforge_lib::song::instrument_part::InstrumentPartType;
 use metalforge_lib::song::song::Song;
 use std::time::Duration;
 use bevy::text::{Justify, TextBounds, TextLayout};
-use bevy::text::Justify::Justified;
 
 const SCROLL_SPEED: f32 = 100.0;
 const PIXELS_PER_MILLIS: f32 = SCROLL_SPEED / 1000.0;
@@ -89,6 +88,7 @@ fn setup_player(
 
     create_background(&mut commands, num_strings, track_length_px);
     create_strings(&mut commands, num_strings, track_length_px);
+    create_beat_lines(&mut commands, &song, part);
     create_guide_lines(&mut commands, &song, part);
     create_note_sprites(&mut commands, &assert_server, part);
     create_cursor(&mut commands);
@@ -129,6 +129,32 @@ fn create_note_sprites(commands: &mut Commands, asset_server: &Res<AssetServer>,
             ));
         });
 
+    }
+}
+
+fn create_beat_lines(commands: &mut Commands, song: &Song, part: &GuitarPart) {
+    let beat_width_px = 1.0;
+    let beat_height_px = (part.tuning.string_offsets.len() as f32 + 1.5) * STRING_SPACING;
+
+    let y = 0.0;
+    let z = 0.1;
+
+    for beat in &part.beats {
+        let x = beat.time.as_millis() as f32 * PIXELS_PER_MILLIS;
+
+        let color = if beat.measure.is_none() {
+            Color::srgba(0.5, 0.5, 0.7, 0.85)
+        } else {
+            Color::srgba(0.7, 0.7, 0.7, 0.85)
+        };
+
+        commands.spawn((
+            Sprite::from_color(
+                color,
+                Vec2::new(beat_width_px, beat_height_px)
+            ),
+            Transform::from_xyz(x, y, z)
+        ));
     }
 }
 

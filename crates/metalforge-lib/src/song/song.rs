@@ -1,4 +1,4 @@
-use crate::song::guitar::{CommonTunings, GuitarNote, GuitarPart, GuitarTechnique};
+use crate::song::guitar::{Beat, CommonTunings, GuitarNote, GuitarPart, GuitarTechnique};
 use crate::song::instrument_part::{InstrumentPart, InstrumentPartType};
 use crate::song::key::Key;
 use crate::song::metadata::Metadata;
@@ -28,6 +28,13 @@ impl Song {
             }
         }).collect();
 
+        let beats = (0..100).map(|i| {
+            Beat {
+                time: Duration::from_secs(i),
+                measure: if i % 4 == 0 { Some(i as usize / 4) } else { None }
+            }
+        }).collect();
+
         Self {
             metadata: Metadata {
                 title: "Test Song".to_string(),
@@ -44,28 +51,8 @@ impl Song {
                     instrument_type: InstrumentPartType::LeadGuitar(GuitarPart {
                         tuning: CommonTunings::EStandard.into(),
                         capo: 0,
-                        /*
-                        notes: vec![
-                            GuitarNote {
-                                string: 0, fret: 0, finger: 0,
-                                time: Duration::from_millis(0), length: Duration::ZERO,
-                                technique: GuitarTechnique::None,
-                                slide_to: 0,
-                            },
-                            GuitarNote {
-                                string: 3, fret: 0, finger: 0,
-                                time: Duration::from_millis(1000), length: Duration::from_millis(1000),
-                                technique: GuitarTechnique::None,
-                                slide_to: 0,
-                            },
-                            GuitarNote {
-                                string: 5, fret: 2, finger: 0,
-                                time: Duration::from_millis(2000), length: Duration::from_millis(500),
-                                technique: GuitarTechnique::None,
-                                slide_to: 0,
-                            }
-                        ],*/
-                        notes
+                        notes,
+                        beats
                     }),
                 }
             ]
