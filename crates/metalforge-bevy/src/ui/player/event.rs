@@ -16,6 +16,20 @@ const ZOOM_STEP: f32 = 0.05;
 const MIN_ZOOM: f32 = 0.2;
 const MAX_ZOOM: f32 = 5.0;
 
+const FINE_SCROLL_DISTANCE_MILLIS: u64 = 10;
+const SCROLL_DISTANCE_MILLIS: u64 = 250;
+const JUMP_DISTANCE_MILLIS: u64 = 1000;
+
+#[derive(Copy, Clone)]
+pub enum SeekLocation {
+    Start,
+    Location(Duration),
+    RelativeForward(Duration),
+    RelativeBackward(Duration),
+    PreviousBeat,
+    NextBeat
+}
+
 #[derive(Message, Copy, Clone)]
 pub enum PlayerEvent {
     /// Rewind and play the loaded song from the start, including any lead-in silence
@@ -25,9 +39,7 @@ pub enum PlayerEvent {
     /// Resume playing from the last paused position
     ResumePlaying,
     /// Jump ahead in the song by the specified duration
-    JumpForwards(Duration),
-    /// Jump back in the song by the specified duration
-    JumpBackwards(Duration),
+    Seek(SeekLocation),
     /// Increase zoom in player view
     ZoomIn,
     /// Decrease zoom in player view
@@ -40,7 +52,6 @@ pub enum PlayerEvent {
     DecreaseSpeed,
     /// Reset playback speed to its original value
     ResetSpeed,
-
     /// Create a new marker indicating where playback should start after the next restart
     MarkLoopStart,
     /// Create a new marker indicating where playback should end next
@@ -52,8 +63,6 @@ pub fn handle_keyboard(
     player_state: Res<State<PlayerState>>,
     mut player_events: MessageWriter<PlayerEvent>
 ) {
-    const SCROLL_DISTANCE_MILLIS: u64 = 250;
-    const JUMP_DISTANCE_MILLIS: u64 = 1000;
 
     // Handle start/stop/pause/restart events
     if input.just_pressed(KeyCode::Space) {
@@ -72,22 +81,39 @@ pub fn handle_keyboard(
     } else if input.pressed(KeyCode::ArrowLeft) {
         // Pressing left jumps back in time
         if input.pressed(KeyCode::ShiftLeft) || input.pressed(KeyCode::ShiftRight) {
-            player_events.write(PlayerEvent::JumpBackwards(Duration::from_millis(JUMP_DISTANCE_MILLIS)));
+            // Fast scroll backward
+            player_events.write(PlayerEvent::Seek(SeekLocation::RelativeBackward(Duration::from_millis(JUMP_DISTANCE_MILLIS))));
+
         } else if input.pressed(KeyCode::AltLeft) || input.pressed(KeyCode::AltRight) {
-            // Snap to nearest beat
-            todo!("Not yet implemented");
+            // Fine scroll backward
+            player_events.write(PlayerEvent::Seek(SeekLocation::RelativeBackward(Duration::from_millis(FINE_SCROLL_DISTANCE_MILLIS))));
+
+        } else if input.pressed(KeyCode::ControlLeft) || input.pressed(KeyCode::ControlRight) || input.pressed(KeyCode::SuperLeft) || input.pressed(KeyCode::SuperRight) {
+            // Snap to nearest beat behind
+            player_events.write(PlayerEvent::Seek(SeekLocation::PreviousBeat));
+
         } else {
-            player_events.write(PlayerEvent::JumpBackwards(Duration::from_millis(SCROLL_DISTANCE_MILLIS)));
+            // Normal scroll backward
+            player_events.write(PlayerEvent::Seek(SeekLocation::RelativeBackward(Duration::from_millis(SCROLL_DISTANCE_MILLIS))));
         }
     } else if input.pressed(KeyCode::ArrowRight) {
         // Pressing right jumps forward in time
         if input.pressed(KeyCode::ShiftRight) || input.pressed(KeyCode::ShiftLeft) {
-            player_events.write(PlayerEvent::JumpForwards(Duration::from_millis(JUMP_DISTANCE_MILLIS)));
+            // Fast scroll forward
+            player_events.write(PlayerEvent::Seek(SeekLocation::RelativeForward(Duration::from_millis(JUMP_DISTANCE_MILLIS))));
+
         } else if input.pressed(KeyCode::AltLeft) || input.pressed(KeyCode::AltRight) {
-            // Snap to nearest beat
-            todo!("Not yet implemented");
+            // Fine scroll forward
+            player_events.write(PlayerEvent::Seek(SeekLocation::RelativeForward(Duration::from_millis(FINE_SCROLL_DISTANCE_MILLIS))));
+
+        } else if input.pressed(KeyCode::ControlLeft) || input.pressed(KeyCode::ControlRight) || input.pressed(KeyCode::SuperLeft) || input.pressed(KeyCode::SuperRight) {
+            // Snap to nearest beat ahead
+            player_events.write(PlayerEvent::Seek(SeekLocation::NextBeat));
+
         } else {
-            player_events.write(PlayerEvent::JumpForwards(Duration::from_millis(SCROLL_DISTANCE_MILLIS)));
+            // Normal scroll forward
+            player_events.write(PlayerEvent::Seek(SeekLocation::RelativeForward(Duration::from_millis(SCROLL_DISTANCE_MILLIS))));
+
         }
     }
 
@@ -137,12 +163,9 @@ pub fn handle_events(
             PlayerEvent::PausePlaying => {
                 pause_play(&mut engine, &mut player, &mut player_state);
             },
-            PlayerEvent::JumpForwards(diff) => {
-                jump_forwards(&mut engine, &mut player, &diff);
+            PlayerEvent::Seek(location) => {
+                seek(&mut engine, &mut player, location);
             },
-            PlayerEvent::JumpBackwards(diff) => {
-                jump_backwards(&mut engine, &mut player, &diff);
-            }
             PlayerEvent::ZoomIn => {
                 camera.zoom = (camera.zoom - ZOOM_STEP).max(MIN_ZOOM);
             }
@@ -166,7 +189,7 @@ pub fn handle_events(
                 player.start_position = player.song_position;
             }
             PlayerEvent::MarkLoopEnd => {
-                player.loop_position = Some(player.song_position);
+                player.loop_position = player.song_position;
             }
         }
     }
@@ -195,8 +218,25 @@ fn resume_play(engine: &mut ResMut<UIEngine>, player: &mut ResMut<SongPlayer>, p
     player_state.set(PlayerState::Playing);
 }
 
+fn seek(engine: &mut ResMut<UIEngine>, player: &mut ResMut<SongPlayer>, location: SeekLocation) {
+    match location {
+        SeekLocation::Start => {
+            engine.send(EngineCommand::Seek(Duration::ZERO));
+            player.song_position = Duration::ZERO;
+        }
+        SeekLocation::Location(location) => {
+            engine.send(EngineCommand::Seek(location));
+            player.song_position = location;
+        }
+        SeekLocation::RelativeForward(diff) => jump_forwards(engine, player, &diff),
+        SeekLocation::RelativeBackward(diff) => jump_backwards(engine, player, &diff),
+        SeekLocation::PreviousBeat => {}
+        SeekLocation::NextBeat => {}
+    }
+}
+
 fn jump_forwards(engine: &mut ResMut<UIEngine>, player: &mut ResMut<SongPlayer>, diff: &Duration) {
-    engine.channel.send(EngineCommand::Seek(player.song_position));
+    engine.send(EngineCommand::Seek(player.song_position));
     player.jump_forwards(diff);
 }
 

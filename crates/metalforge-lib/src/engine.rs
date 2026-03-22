@@ -1,7 +1,8 @@
 use std::fs::File;
+use std::path::Path;
 use std::time::Duration;
 use crossbeam_channel::{Receiver, Sender};
-use log::{debug, error};
+use log::{debug, error, info};
 use rodio::{Decoder, MixerDeviceSink, Player};
 
 /// `Engine` is responsible for handling input and output devices and managing playback.
@@ -46,28 +47,23 @@ impl Engine {
     fn handle_command(&self, event: &EngineCommand) -> bool {
         match *event {
             EngineCommand::Quit => return self.quit(),
-            EngineCommand::PlaySong => self.play_song(),
             EngineCommand::Pause => self.pause(),
             EngineCommand::Resume => self.resume(),
             EngineCommand::Seek(duration) => self.seek(duration),
             EngineCommand::ChangeSpeed(speed) => self.change_speed(speed),
-            EngineCommand::LoadSong => todo!(),
+            EngineCommand::LoadSong => self.load_song("./examples/sample_song/Sandbox-24bit-44k.ogg"),
         }
         true
     }
 
-    fn play_song(&self) {
-        // Add a source to the sink
-        let path = "./examples/sample_song/Sandbox-24bit-44k.ogg";
-
+    fn load_song<P: AsRef<Path>>(&self, path: P) {
         let file = File::open(path)
             .expect("Failed to open OGG file");
 
         let file_source = Decoder::try_from(file)
             .expect("Failed to decode sound file");
-            // .amplify(1.0)
-            // .take_duration(Duration::from_millis(10_000));
 
+        self.output_player.clear();
         self.output_player.append(file_source);
     }
 
@@ -78,8 +74,6 @@ impl Engine {
     fn resume(&self) {
         if self.output_player.is_paused() {
             self.output_player.play();
-        } else {
-            self.play_song();
         }
     }
 
@@ -103,7 +97,6 @@ impl Engine {
 
 pub enum EngineCommand {
     LoadSong,
-    PlaySong,
     Seek(Duration),
     Pause,
     Resume,

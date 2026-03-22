@@ -63,6 +63,8 @@ impl UI {
             }
         });
 
+        engine.send(EngineCommand::LoadSong);
+
         app
             .insert_state(AppState::Player)
             .insert_resource(WinitSettings::game())

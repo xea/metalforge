@@ -10,7 +10,7 @@ pub enum PlayerState {
 #[derive(Resource)]
 pub struct SongPlayer {
     pub start_position: Duration,
-    pub loop_position: Option<Duration>,
+    pub loop_position: Duration,
     pub last_start: Instant,
     pub song_position: Duration,
     pub song_duration: Duration,
@@ -52,7 +52,7 @@ impl Default for SongPlayer {
     fn default() -> Self {
         Self {
             start_position: Duration::ZERO,
-            loop_position: None,
+            loop_position: Duration::ZERO,
             last_start: Instant::now(),
             song_position: Duration::ZERO,
             song_duration: Duration::ZERO,

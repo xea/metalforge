@@ -4,7 +4,7 @@ mod cursor;
 mod info;
 
 use crate::ui::player::cursor::{Cursor, CursorBundle};
-use crate::ui::player::event::{handle_events, handle_keyboard, handle_window_events, PlayerEvent};
+use crate::ui::player::event::{handle_events, handle_keyboard, handle_window_events, SeekLocation, PlayerEvent};
 use crate::ui::player::info::{setup_info, update_info};
 use crate::ui::player::song_player::{PlayerState, SongPlayer};
 use bevy::app::{App, FixedUpdate, Startup, Update};
@@ -13,16 +13,16 @@ use bevy::camera::{Camera2d, ClearColor, Projection};
 use bevy::color::{Color, Luminance};
 use bevy::math::{Vec2, Vec3};
 use bevy::mesh::Mesh;
-use bevy::prelude::{AppExtStates, Commands, Component, LineBreak, Query, Res, ResMut, Resource, Sprite, Transform, With, Without};
+use bevy::prelude::{AppExtStates, Commands, Component, LineBreak, MessageWriter, Query, Res, ResMut, Resource, Sprite, Transform, With, Without};
 use bevy::sprite::{BorderRect, SpriteImageMode, Text2d, Text2dShadow, TextureSlicer};
 use bevy::sprite_render::ColorMaterial;
+use bevy::text::{Justify, TextBounds, TextLayout};
 use bevy::time::{Fixed, Time};
 use bevy::utils::default;
 use metalforge_lib::song::guitar::GuitarPart;
 use metalforge_lib::song::instrument_part::InstrumentPartType;
 use metalforge_lib::song::song::Song;
 use std::time::Duration;
-use bevy::text::{Justify, TextBounds, TextLayout};
 
 const SCROLL_SPEED: f32 = 100.0;
 const PIXELS_PER_MILLIS: f32 = SCROLL_SPEED / 1000.0;
@@ -40,6 +40,7 @@ pub fn player_plugin(app: &mut App) {
         .add_systems(Update, (handle_keyboard, handle_events))
         .add_systems(FixedUpdate, (update_position, update_info, update_markers))
         .add_systems(FixedUpdate, handle_window_events)
+        .add_systems(FixedUpdate, check_loop)
         .add_systems(Update, update_camera)
         .add_message::<PlayerEvent>()
     ;
@@ -88,7 +89,7 @@ fn setup_player(
     let track_length_px = duration.as_millis() as f32 * PIXELS_PER_MILLIS;
 
     // By default, the player should loop when the song ends
-    player.loop_position = Some(duration);
+    player.loop_position = duration;
     player.song_duration = duration;
 
     create_background(&mut commands, num_strings, track_length_px);
@@ -289,7 +290,7 @@ fn create_markers(commands: &mut Commands, player: &ResMut<SongPlayer>) {
     let size = Vec2::new(1.0, 500.0);
 
     let start_x = player.start_position.as_millis() as f32 * PIXELS_PER_MILLIS;
-    let end_pos = player.loop_position.map(|x| x.as_millis() as f32 * PIXELS_PER_MILLIS);
+    let end_x = player.loop_position.as_millis() as f32 * PIXELS_PER_MILLIS;
 
     commands.spawn((
         LoopStartMarker,
@@ -297,13 +298,11 @@ fn create_markers(commands: &mut Commands, player: &ResMut<SongPlayer>) {
         Transform::from_xyz(start_x, 0.0, 0.1)
     ));
 
-    if let Some(end_x) = end_pos {
-        commands.spawn((
-            LoopEndMarker,
-            Sprite::from_color(color, size),
-            Transform::from_xyz(end_x, 0.0, 0.1)
-        ));
-    }
+    commands.spawn((
+        LoopEndMarker,
+        Sprite::from_color(color, size),
+        Transform::from_xyz(end_x, 0.0, 0.1)
+    ));
 }
 
 fn update_markers(player: Res<SongPlayer>, mut q_start_marker: Query<&mut Transform, (With<LoopStartMarker>, Without<LoopEndMarker>)>, mut q_end_marker: Query<&mut Transform, (With<LoopEndMarker>, Without<LoopStartMarker>)>) {
@@ -312,6 +311,14 @@ fn update_markers(player: Res<SongPlayer>, mut q_start_marker: Query<&mut Transf
     }
 
     for mut marker in q_end_marker.iter_mut() {
-        marker.translation.x = player.loop_position.unwrap_or(player.song_duration).as_millis() as f32 * PIXELS_PER_MILLIS;
+        marker.translation.x = player.loop_position.as_millis() as f32 * PIXELS_PER_MILLIS;
+    }
+}
+
+/// Verify if the current playback position is beyond the loop end marker and we need to wind back to the start of the loop
+fn check_loop(player: Res<SongPlayer>, mut event_queue: MessageWriter<PlayerEvent>) {
+    if player.playing && player.song_position >= player.loop_position {
+        let location = SeekLocation::Location(player.start_position);
+        event_queue.write(PlayerEvent::Seek(location));
     }
 }
