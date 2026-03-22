@@ -1,4 +1,3 @@
-mod event;
 mod player;
 
 use bevy::app::{App, PluginGroup};
@@ -9,7 +8,7 @@ use bevy::winit::WinitSettings;
 use bevy::DefaultPlugins;
 use bevy::image::ImagePlugin;
 use bevy_dev_tools::fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin, FrameTimeGraphConfig};
-use metalforge_lib::engine::EngineChannel;
+use metalforge_lib::engine::{EngineChannel, EngineCommand};
 
 #[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum AppState {
@@ -19,6 +18,12 @@ pub enum AppState {
 #[derive(Resource)]
 pub struct UIEngine {
     channel: EngineChannel
+}
+
+impl UIEngine {
+    pub fn send(&self, event: EngineCommand) {
+        self.channel.send(event);
+    }
 }
 
 pub struct UI {

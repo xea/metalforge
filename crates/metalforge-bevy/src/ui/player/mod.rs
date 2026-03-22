@@ -13,7 +13,7 @@ use bevy::camera::{Camera2d, ClearColor, Projection};
 use bevy::color::{Color, Luminance};
 use bevy::math::{Vec2, Vec3};
 use bevy::mesh::Mesh;
-use bevy::prelude::{AppExtStates, Commands, LineBreak, Query, Res, ResMut, Resource, Sprite, Transform, With, Without};
+use bevy::prelude::{AppExtStates, Commands, Component, LineBreak, Query, Res, ResMut, Resource, Sprite, Transform, With, Without};
 use bevy::sprite::{BorderRect, SpriteImageMode, Text2d, Text2dShadow, TextureSlicer};
 use bevy::sprite_render::ColorMaterial;
 use bevy::time::{Fixed, Time};
@@ -38,7 +38,7 @@ pub fn player_plugin(app: &mut App) {
         .insert_resource(ClearColor(Color::srgb(0.06, 0.06, 0.10)))
         .add_systems(Startup, (setup_player, setup_info, create_camera))
         .add_systems(Update, (handle_keyboard, handle_events))
-        .add_systems(FixedUpdate, (update_position, update_info))
+        .add_systems(FixedUpdate, (update_position, update_info, update_markers))
         .add_systems(FixedUpdate, handle_window_events)
         .add_systems(Update, update_camera)
         .add_message::<PlayerEvent>()
@@ -70,7 +70,8 @@ fn setup_player(
     mut commands: Commands,
     mut _meshes: ResMut<Assets<Mesh>>,
     mut _materials: ResMut<Assets<ColorMaterial>>,
-    assert_server: Res<AssetServer>
+    assert_server: Res<AssetServer>,
+    mut player: ResMut<SongPlayer>
 ) {
     let song = Song::test_song();
     let instrument = song.instrument_parts.first()
@@ -86,12 +87,17 @@ fn setup_player(
     let duration = song.metadata.length;
     let track_length_px = duration.as_millis() as f32 * PIXELS_PER_MILLIS;
 
+    // By default, the player should loop when the song ends
+    player.loop_position = Some(duration);
+    player.song_duration = duration;
+
     create_background(&mut commands, num_strings, track_length_px);
     create_strings(&mut commands, num_strings, track_length_px);
-    create_beat_lines(&mut commands, &song, part);
+    create_beat_lines(&mut commands, part);
     create_guide_lines(&mut commands, &song, part);
     create_note_sprites(&mut commands, &assert_server, part);
     create_cursor(&mut commands);
+    create_markers(&mut commands, &player);
 }
 
 fn create_note_sprites(commands: &mut Commands, asset_server: &Res<AssetServer>, part: &GuitarPart) {
@@ -132,7 +138,7 @@ fn create_note_sprites(commands: &mut Commands, asset_server: &Res<AssetServer>,
     }
 }
 
-fn create_beat_lines(commands: &mut Commands, song: &Song, part: &GuitarPart) {
+fn create_beat_lines(commands: &mut Commands, part: &GuitarPart) {
     let beat_width_px = 1.0;
     let beat_height_px = (part.tuning.string_offsets.len() as f32 + 1.5) * STRING_SPACING;
 
@@ -143,9 +149,9 @@ fn create_beat_lines(commands: &mut Commands, song: &Song, part: &GuitarPart) {
         let x = beat.time.as_millis() as f32 * PIXELS_PER_MILLIS;
 
         let color = if beat.measure.is_none() {
-            Color::srgba(0.5, 0.5, 0.7, 0.85)
+            Color::srgba(0.7, 0.7, 0.7, 0.25)
         } else {
-            Color::srgba(0.7, 0.7, 0.7, 0.85)
+            Color::srgba(0.5, 0.5, 0.7, 0.85)
         };
 
         commands.spawn((
@@ -267,7 +273,45 @@ fn update_camera(time: Res<Time<Fixed>>, camera_position: Res<CameraPosition>, m
     camera.0.translation = SCROLL_SPEED * camera_position.previous.lerp(camera_position.current, f);
     cursor.translation = camera.0.translation;
 
-    if let Projection::Orthographic(ref mut ortho) = *camera.1 {
-        ortho.scale = camera_position.zoom;
+    if let Projection::Orthographic(ref mut projection) = *camera.1 {
+        projection.scale = camera_position.zoom;
+    }
+}
+
+#[derive(Component)]
+pub struct LoopStartMarker;
+
+#[derive(Component)]
+pub struct LoopEndMarker;
+
+fn create_markers(commands: &mut Commands, player: &ResMut<SongPlayer>) {
+    let color = Color::srgba(1.0, 0.0, 0.0, 0.85);
+    let size = Vec2::new(1.0, 500.0);
+
+    let start_x = player.start_position.as_millis() as f32 * PIXELS_PER_MILLIS;
+    let end_pos = player.loop_position.map(|x| x.as_millis() as f32 * PIXELS_PER_MILLIS);
+
+    commands.spawn((
+        LoopStartMarker,
+        Sprite::from_color(color, size),
+        Transform::from_xyz(start_x, 0.0, 0.1)
+    ));
+
+    if let Some(end_x) = end_pos {
+        commands.spawn((
+            LoopEndMarker,
+            Sprite::from_color(color, size),
+            Transform::from_xyz(end_x, 0.0, 0.1)
+        ));
+    }
+}
+
+fn update_markers(player: Res<SongPlayer>, mut q_start_marker: Query<&mut Transform, (With<LoopStartMarker>, Without<LoopEndMarker>)>, mut q_end_marker: Query<&mut Transform, (With<LoopEndMarker>, Without<LoopStartMarker>)>) {
+    for mut marker in q_start_marker.iter_mut() {
+        marker.translation.x = player.start_position.as_millis() as f32 * PIXELS_PER_MILLIS;
+    }
+
+    for mut marker in q_end_marker.iter_mut() {
+        marker.translation.x = player.loop_position.unwrap_or(player.song_duration).as_millis() as f32 * PIXELS_PER_MILLIS;
     }
 }

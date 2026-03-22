@@ -41,9 +41,10 @@ pub enum PlayerEvent {
     /// Reset playback speed to its original value
     ResetSpeed,
 
-    /// TODO
-    MarkLoopStart(Duration),
-    MarkLoopEnd(Duration),
+    /// Create a new marker indicating where playback should start after the next restart
+    MarkLoopStart,
+    /// Create a new marker indicating where playback should end next
+    MarkLoopEnd,
 }
 
 pub fn handle_keyboard(
@@ -72,6 +73,9 @@ pub fn handle_keyboard(
         // Pressing left jumps back in time
         if input.pressed(KeyCode::ShiftLeft) || input.pressed(KeyCode::ShiftRight) {
             player_events.write(PlayerEvent::JumpBackwards(Duration::from_millis(JUMP_DISTANCE_MILLIS)));
+        } else if input.pressed(KeyCode::AltLeft) || input.pressed(KeyCode::AltRight) {
+            // Snap to nearest beat
+            todo!("Not yet implemented");
         } else {
             player_events.write(PlayerEvent::JumpBackwards(Duration::from_millis(SCROLL_DISTANCE_MILLIS)));
         }
@@ -79,6 +83,9 @@ pub fn handle_keyboard(
         // Pressing right jumps forward in time
         if input.pressed(KeyCode::ShiftRight) || input.pressed(KeyCode::ShiftLeft) {
             player_events.write(PlayerEvent::JumpForwards(Duration::from_millis(JUMP_DISTANCE_MILLIS)));
+        } else if input.pressed(KeyCode::AltLeft) || input.pressed(KeyCode::AltRight) {
+            // Snap to nearest beat
+            todo!("Not yet implemented");
         } else {
             player_events.write(PlayerEvent::JumpForwards(Duration::from_millis(SCROLL_DISTANCE_MILLIS)));
         }
@@ -100,6 +107,13 @@ pub fn handle_keyboard(
         player_events.write(PlayerEvent::ZoomOut);
     } else if input.pressed(KeyCode::Digit0) {
         player_events.write(PlayerEvent::ResetZoom);
+    }
+
+    // Handle marker events
+    if input.just_pressed(KeyCode::BracketLeft) {
+        player_events.write(PlayerEvent::MarkLoopStart);
+    } else if input.just_pressed(KeyCode::BracketRight) {
+        player_events.write(PlayerEvent::MarkLoopEnd);
     }
 }
 
@@ -147,31 +161,36 @@ pub fn handle_events(
             PlayerEvent::ResetSpeed => {
                 player.player_speed = 1.0;
                 reset_speed(&mut engine, &mut player);
-            },
-            PlayerEvent::MarkLoopStart(_) | PlayerEvent::MarkLoopEnd(_) => todo!("Not yet implemented!"),
+            }
+            PlayerEvent::MarkLoopStart => {
+                player.start_position = player.song_position;
+            }
+            PlayerEvent::MarkLoopEnd => {
+                player.loop_position = Some(player.song_position);
+            }
         }
     }
 }
 
 pub fn handle_window_events(mut window_close_events: MessageReader<WindowCloseRequested>, engine: ResMut<UIEngine>) {
     for _event in window_close_events.read() {
-        engine.channel.send(EngineCommand::Quit);
+        engine.send(EngineCommand::Quit);
     }
 }
 
 fn rewind_player(engine: &mut ResMut<UIEngine>, player: &mut ResMut<SongPlayer>, _time: &mut ResMut<Time<Virtual>>) {
-    engine.channel.send(EngineCommand::Seek(Duration::ZERO));
+    engine.send(EngineCommand::Seek(Duration::ZERO));
     player.rewind();
 }
 
 fn pause_play(engine: &mut ResMut<UIEngine>, player: &mut ResMut<SongPlayer>, player_state: &mut ResMut<NextState<PlayerState>>) {
-    engine.channel.send(EngineCommand::Pause);
+    engine.send(EngineCommand::Pause);
     player.pause();
     player_state.set(PlayerState::Paused);
 }
 
 fn resume_play(engine: &mut ResMut<UIEngine>, player: &mut ResMut<SongPlayer>, player_state: &mut ResMut<NextState<PlayerState>>) {
-    engine.channel.send(EngineCommand::Resume);
+    engine.send(EngineCommand::Resume);
     player.resume();
     player_state.set(PlayerState::Playing);
 }
@@ -182,21 +201,21 @@ fn jump_forwards(engine: &mut ResMut<UIEngine>, player: &mut ResMut<SongPlayer>,
 }
 
 fn jump_backwards(engine: &mut ResMut<UIEngine>, player: &mut ResMut<SongPlayer>, diff: &Duration) {
-    engine.channel.send(EngineCommand::Seek(player.song_position));
+    engine.send(EngineCommand::Seek(player.song_position));
     player.jump_backwards(diff);
 }
 
 fn increase_speed(engine: &mut ResMut<UIEngine>, player: &mut ResMut<SongPlayer>) {
     player.player_speed = (player.player_speed + SPEED_STEP).min(MAX_SPEED);
-    engine.channel.send(EngineCommand::ChangeSpeed(player.player_speed));
+    engine.send(EngineCommand::ChangeSpeed(player.player_speed));
 }
 
 fn decrease_speed(engine: &mut ResMut<UIEngine>, player: &mut ResMut<SongPlayer>) {
     player.player_speed = (player.player_speed - SPEED_STEP).max(MIN_SPEED);
-    engine.channel.send(EngineCommand::ChangeSpeed(player.player_speed));
+    engine.send(EngineCommand::ChangeSpeed(player.player_speed));
 }
 
 fn reset_speed(engine: &mut ResMut<UIEngine>, player: &mut ResMut<SongPlayer>) {
     player.player_speed = 1.0;
-    engine.channel.send(EngineCommand::ChangeSpeed(player.player_speed));
+    engine.send(EngineCommand::ChangeSpeed(player.player_speed));
 }
