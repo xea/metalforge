@@ -4,17 +4,20 @@ use std::time::Duration;
 use crossbeam_channel::{Receiver, Sender};
 use log::{debug, error, info};
 use rodio::{Decoder, MixerDeviceSink, Player};
+use rodio::decoder::DecoderBuilder;
 
 /// `Engine` is responsible for handling input and output devices and managing playback.
 pub struct Engine {
     command_rx: Receiver<EngineCommand>,
     command_tx: Sender<EngineCommand>,
+    event_rx: Receiver<EngineEvent>,
+    event_tx: Sender<EngineEvent>,
     _output_sink: MixerDeviceSink,
     output_player: Player
 }
 
 impl Engine {
-    pub fn new(command_tx: Sender<EngineCommand>, command_rx: Receiver<EngineCommand>) -> Self {
+    pub fn new(command_tx: Sender<EngineCommand>, command_rx: Receiver<EngineCommand>, event_tx: Sender<EngineEvent>, event_rx: Receiver<EngineEvent>) -> Self {
         let output_sink = rodio::DeviceSinkBuilder::open_default_sink()
             .expect("Cannot open audio stream");
 
@@ -23,13 +26,15 @@ impl Engine {
         Self {
             command_rx,
             command_tx,
+            event_rx,
+            event_tx,
             _output_sink: output_sink,
             output_player: player
         }
     }
 
     pub fn create_channel(&self) -> EngineChannel {
-        EngineChannel::new(self.command_tx.clone())
+        EngineChannel::new(self.command_tx.clone(), self.event_rx.clone())
     }
 
     pub fn command(&self, command: EngineCommand) {
@@ -60,11 +65,19 @@ impl Engine {
         let file = File::open(path)
             .expect("Failed to open OGG file");
 
-        let file_source = Decoder::try_from(file)
-            .expect("Failed to decode sound file");
+        let file_source = DecoderBuilder::new()
+            .with_data(file)
+            .with_gapless(true)
+            // .with_seekable(true)
+            .build()
+            .expect("Failed to create decoder for file");
+
+        // let file_source = Decoder::try_from(file)
+        //     .expect("Failed to decode sound file");
 
         self.output_player.clear();
         self.output_player.append(file_source);
+        self.event_tx.send(EngineEvent::SongLoaded());
     }
 
     fn pause(&self) {
@@ -104,18 +117,31 @@ pub enum EngineCommand {
     Quit
 }
 
+pub enum EngineEvent {
+    SongLoaded(),
+}
+
 pub struct EngineChannel {
-    tx: Sender<EngineCommand>
+    tx: Sender<EngineCommand>,
+    rx: Receiver<EngineEvent>
 }
 
 impl EngineChannel {
-    pub fn new(tx: Sender<EngineCommand>) -> Self {
+    pub fn new(tx: Sender<EngineCommand>, rx: Receiver<EngineEvent>) -> Self {
         Self {
-            tx
+            tx, rx
         }
     }
 
     pub fn send(&self, command: EngineCommand) {
         self.tx.send(command).expect("Failed to send engine command");
+    }
+
+    pub fn receive(&self) -> Option<EngineEvent> {
+        self.rx.recv().ok()
+    }
+
+    pub fn try_receive(&self) -> Option<EngineEvent> {
+        self.rx.try_recv().ok()
     }
 }

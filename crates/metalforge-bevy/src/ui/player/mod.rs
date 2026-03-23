@@ -4,7 +4,7 @@ mod cursor;
 mod info;
 
 use crate::ui::player::cursor::{Cursor, CursorBundle};
-use crate::ui::player::event::{handle_events, handle_keyboard, handle_window_events, SeekLocation, PlayerEvent};
+use crate::ui::player::event::{handle_events, handle_keyboard, handle_window_events, SeekLocation, PlayerEvent, handle_engine_events};
 use crate::ui::player::info::{setup_info, update_info};
 use crate::ui::player::song_player::{PlayerState, SongPlayer};
 use bevy::app::{App, FixedUpdate, Startup, Update};
@@ -39,7 +39,7 @@ pub fn player_plugin(app: &mut App) {
         .add_systems(Startup, (setup_player, setup_info, create_camera))
         .add_systems(Update, (handle_keyboard, handle_events))
         .add_systems(FixedUpdate, (update_position, update_info, update_markers))
-        .add_systems(FixedUpdate, handle_window_events)
+        .add_systems(FixedUpdate, (handle_window_events, handle_engine_events))
         .add_systems(FixedUpdate, check_loop)
         .add_systems(Update, update_camera)
         .add_message::<PlayerEvent>()

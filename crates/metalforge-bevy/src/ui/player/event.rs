@@ -3,7 +3,7 @@ use bevy::input::ButtonInput;
 use bevy::prelude::{KeyCode, Message, MessageReader, MessageWriter, NextState, Res, ResMut, State};
 use bevy::time::{Time, Virtual};
 use bevy::window::WindowCloseRequested;
-use metalforge_lib::engine::EngineCommand;
+use metalforge_lib::engine::{EngineCommand, EngineEvent};
 use crate::ui::player::CameraPosition;
 use crate::ui::player::song_player::{PlayerState, SongPlayer};
 use crate::ui::UIEngine;
@@ -198,6 +198,14 @@ pub fn handle_events(
 pub fn handle_window_events(mut window_close_events: MessageReader<WindowCloseRequested>, engine: ResMut<UIEngine>) {
     for _event in window_close_events.read() {
         engine.send(EngineCommand::Quit);
+    }
+}
+
+pub fn handle_engine_events(mut engine: ResMut<UIEngine>) {
+    while let Some(event) = engine.channel.try_receive() {
+        match event {
+            EngineEvent::SongLoaded() => {}
+        }
     }
 }
 

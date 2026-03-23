@@ -5,16 +5,19 @@ use crate::ui::UI;
 
 mod ui;
 
+const QUEUE_SIZE: usize = 64;
+
 fn main() {
     log::info!("Initialising application...");
 
-    let (control_tx, _control_rx) = bounded(64);
-    let (engine_tx, engine_rx) = bounded(64);
+    let (control_tx, _control_rx) = bounded(QUEUE_SIZE);
+    let (engine_tx, engine_rx) = bounded(QUEUE_SIZE);
+    let (event_tx, event_rx) = bounded(QUEUE_SIZE);
 
-    let mut ui = UI::new(EngineChannel::new(engine_tx.clone()));
+    let mut ui = UI::new(EngineChannel::new(engine_tx.clone(), event_rx.clone()));
 
     let engine_thread = std::thread::spawn(move || {
-        let engine = Engine::new(engine_tx, engine_rx);
+        let engine = Engine::new(engine_tx, engine_rx, event_tx, event_rx);
         engine.main_loop();
     });
 

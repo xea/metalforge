@@ -1,6 +1,6 @@
 mod player;
 
-use bevy::app::{App, PluginGroup};
+use bevy::app::{App, PluginGroup, Plugins};
 use bevy::prelude::{AppExtStates, Resource, States};
 use bevy::utils::default;
 use bevy::window::{Window, WindowPlugin, WindowTheme};
@@ -34,15 +34,10 @@ impl UI {
     pub fn new(engine: EngineChannel) -> Self {
         let mut app = App::new();
 
-        app.add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                //mode: WindowMode::BorderlessFullscreen(MonitorSelection::Current),
-                window_theme: Some(WindowTheme::Dark),
-                ..default()
-            }),
-            ..default()
-        }).set(ImagePlugin::default_nearest()));
-
+        app.add_plugins(DefaultPlugins
+            .set(window_plugin())
+            .set(image_plugin()))
+            .add_plugins(fps_overlay_plugin());
         /*
         app.add_plugins(FrameTimeDiagnosticsPlugin {
             max_history_length: 60,
@@ -51,17 +46,6 @@ impl UI {
 
         app.add_plugins((FramepacePlugin, debug::DiagnosticsPlugin));
          */
-
-        app.add_plugins(FpsOverlayPlugin {
-            config: FpsOverlayConfig {
-                enabled: true,
-                frame_time_graph_config: FrameTimeGraphConfig {
-                    enabled: true,
-                    ..default()
-                },
-                ..default()
-            }
-        });
 
         engine.send(EngineCommand::LoadSong);
 
@@ -79,5 +63,33 @@ impl UI {
 
     pub fn run(&mut self) {
         self.app.run();
+    }
+}
+
+fn window_plugin() -> WindowPlugin {
+    WindowPlugin {
+        primary_window: Some(Window {
+            //mode: WindowMode::BorderlessFullscreen(MonitorSelection::Current),
+            window_theme: Some(WindowTheme::Dark),
+            ..default()
+        }),
+        ..default()
+    }
+}
+
+fn image_plugin() -> ImagePlugin {
+    ImagePlugin::default_nearest()
+}
+
+fn fps_overlay_plugin() -> FpsOverlayPlugin {
+    FpsOverlayPlugin {
+        config: FpsOverlayConfig {
+            enabled: true,
+            frame_time_graph_config: FrameTimeGraphConfig {
+                enabled: true,
+                ..default()
+            },
+            ..default()
+        }
     }
 }
