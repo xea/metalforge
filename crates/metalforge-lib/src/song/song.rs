@@ -8,10 +8,27 @@ use rand::{RngExt};
 pub struct Song {
     pub metadata: Metadata,
     pub instrument_parts: Vec<InstrumentPart>,
+    pub beats: Vec<Beat>,
     pub a440_offset: f32
 }
 
 impl Song {
+    pub fn empty() -> Song {
+        Self {
+            metadata: Metadata {
+                title: "N/A".to_string(),
+                artist: "N/A".to_string(),
+                album: "N/A".to_string(),
+                year: 1970,
+                length: Default::default(),
+                key: Key::CMajor,
+            },
+            instrument_parts: vec![],
+            beats: vec![],
+            a440_offset: 0.0,
+        }
+    }
+
     pub fn test_song() -> Self {
         let mut rng = rand::rng();
 
@@ -52,10 +69,10 @@ impl Song {
                         tuning: CommonTunings::EStandard.into(),
                         capo: 0,
                         notes,
-                        beats
                     }),
                 }
-            ]
+            ],
+            beats
         }
     }
 }

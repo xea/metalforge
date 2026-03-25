@@ -16,7 +16,7 @@ use bevy::mesh::Mesh;
 use bevy::prelude::{AppExtStates, Commands, Component, LineBreak, MessageWriter, Query, Res, ResMut, Resource, Sprite, Transform, With, Without};
 use bevy::sprite::{BorderRect, SpriteImageMode, Text2d, Text2dShadow, TextureSlicer};
 use bevy::sprite_render::ColorMaterial;
-use bevy::text::{Justify, TextBounds, TextLayout};
+use bevy::text::{Justify, TextBounds, TextColor, TextFont, TextLayout};
 use bevy::time::{Fixed, Time};
 use bevy::utils::default;
 use metalforge_lib::song::guitar::GuitarPart;
@@ -33,7 +33,7 @@ const STRING_SPACING: f32 = 45.0;
 pub fn player_plugin(app: &mut App) {
     app
         .insert_state(PlayerState::Paused)
-        .insert_resource(SongPlayer::default())
+        .insert_resource(SongPlayer::new(Song::test_song()))
         .insert_resource(CameraPosition::default())
         .insert_resource(ClearColor(Color::srgb(0.06, 0.06, 0.10)))
         .add_systems(Startup, (setup_player, setup_info, create_camera))
@@ -72,9 +72,9 @@ fn setup_player(
     mut _meshes: ResMut<Assets<Mesh>>,
     mut _materials: ResMut<Assets<ColorMaterial>>,
     assert_server: Res<AssetServer>,
-    mut player: ResMut<SongPlayer>
+    player: Res<SongPlayer>
 ) {
-    let song = Song::test_song();
+    let song = &player.current_song;
     let instrument = song.instrument_parts.first()
         .expect("Instrument part could not be found");
 
@@ -88,13 +88,9 @@ fn setup_player(
     let duration = song.metadata.length;
     let track_length_px = duration.as_millis() as f32 * PIXELS_PER_MILLIS;
 
-    // By default, the player should loop when the song ends
-    player.loop_position = duration;
-    player.song_duration = duration;
-
     create_background(&mut commands, num_strings, track_length_px);
     create_strings(&mut commands, num_strings, track_length_px);
-    create_beat_lines(&mut commands, part);
+    create_beat_lines(&mut commands, &song, part);
     create_guide_lines(&mut commands, &song, part);
     create_note_sprites(&mut commands, &assert_server, part);
     create_cursor(&mut commands);
@@ -135,18 +131,17 @@ fn create_note_sprites(commands: &mut Commands, asset_server: &Res<AssetServer>,
                 },
             ));
         });
-
     }
 }
 
-fn create_beat_lines(commands: &mut Commands, part: &GuitarPart) {
+fn create_beat_lines(commands: &mut Commands, song: &Song, part: &GuitarPart) {
     let beat_width_px = 1.0;
     let beat_height_px = (part.tuning.string_offsets.len() as f32 + 1.5) * STRING_SPACING;
 
     let y = 0.0;
     let z = 0.1;
 
-    for beat in &part.beats {
+    for beat in &song.beats {
         let x = beat.time.as_millis() as f32 * PIXELS_PER_MILLIS;
 
         let color = if beat.measure.is_none() {
@@ -155,13 +150,31 @@ fn create_beat_lines(commands: &mut Commands, part: &GuitarPart) {
             Color::srgba(0.5, 0.5, 0.7, 0.85)
         };
 
-        commands.spawn((
+        let mut line = commands.spawn((
             Sprite::from_color(
                 color,
                 Vec2::new(beat_width_px, beat_height_px)
             ),
             Transform::from_xyz(x, y, z)
         ));
+
+        if beat.measure.is_some() {
+            let mins = beat.time.as_secs() / 60;
+            let secs = beat.time.as_secs() % 60;
+            let millis = beat.time.subsec_millis();
+
+            let label = format!("{}:{:02}.{:03}", mins, secs, millis);
+
+            line.with_children(|parent| {
+                parent.spawn((
+                    Text2d::new(label),
+                    TextFont::from_font_size(11.0),
+                    TextColor(Color::srgba(0.6, 0.6, 0.8, 0.9)),
+                    TextLayout::new(Justify::Center, LineBreak::NoWrap),
+                    Transform::from_xyz(0.0, -beat_height_px / 2.0 - 20.0, 0.0)
+                ));
+            });
+        }
     }
 }
 
@@ -285,7 +298,7 @@ pub struct LoopStartMarker;
 #[derive(Component)]
 pub struct LoopEndMarker;
 
-fn create_markers(commands: &mut Commands, player: &ResMut<SongPlayer>) {
+fn create_markers(commands: &mut Commands, player: &Res<SongPlayer>) {
     let color = Color::srgba(1.0, 0.0, 0.0, 0.85);
     let size = Vec2::new(1.0, 500.0);
 

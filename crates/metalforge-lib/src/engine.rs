@@ -2,8 +2,8 @@ use std::fs::File;
 use std::path::Path;
 use std::time::Duration;
 use crossbeam_channel::{Receiver, Sender};
-use log::{debug, error, info};
-use rodio::{Decoder, MixerDeviceSink, Player};
+use log::{debug, error};
+use rodio::{MixerDeviceSink, Player};
 use rodio::decoder::DecoderBuilder;
 
 /// `Engine` is responsible for handling input and output devices and managing playback.
@@ -21,7 +21,7 @@ impl Engine {
         let output_sink = rodio::DeviceSinkBuilder::open_default_sink()
             .expect("Cannot open audio stream");
 
-        let player = rodio::Player::connect_new(output_sink.mixer());
+        let player = Player::connect_new(output_sink.mixer());
 
         Self {
             command_rx,
@@ -65,10 +65,15 @@ impl Engine {
         let file = File::open(path)
             .expect("Failed to open OGG file");
 
+        let len = file.metadata()
+            .expect("Failed to open file metadata")
+            .len();
+
         let file_source = DecoderBuilder::new()
             .with_data(file)
+            .with_byte_len(len)
             .with_gapless(true)
-            // .with_seekable(true)
+            .with_seekable(true)
             .build()
             .expect("Failed to create decoder for file");
 
@@ -77,7 +82,6 @@ impl Engine {
 
         self.output_player.clear();
         self.output_player.append(file_source);
-        self.event_tx.send(EngineEvent::SongLoaded());
     }
 
     fn pause(&self) {
@@ -94,7 +98,7 @@ impl Engine {
         if let Err(err) = self.output_player.try_seek(duration) {
             error!("Failed to seek in song: {:?}", err);
         } else {
-            debug!("Seeked song: {:?}", duration);
+            debug!("Seeked song: {:?} and {:?}", duration, self.output_player.get_pos());
         }
     }
 
@@ -118,7 +122,6 @@ pub enum EngineCommand {
 }
 
 pub enum EngineEvent {
-    SongLoaded(),
 }
 
 pub struct EngineChannel {

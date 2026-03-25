@@ -1,5 +1,6 @@
 use std::time::{Duration, Instant};
 use bevy::prelude::{Resource, States};
+use metalforge_lib::song::song::Song;
 
 #[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PlayerState {
@@ -9,6 +10,7 @@ pub enum PlayerState {
 
 #[derive(Resource)]
 pub struct SongPlayer {
+    pub current_song: Song,
     pub start_position: Duration,
     pub loop_position: Duration,
     pub last_start: Instant,
@@ -19,6 +21,25 @@ pub struct SongPlayer {
 }
 
 impl SongPlayer {
+
+    pub fn new(song: Song) -> Self {
+        let duration = song.metadata.length;
+
+        // By default, the player should loop when the song ends
+        let loop_position = duration;
+        let song_duration = duration;
+
+        Self {
+            current_song: song,
+            start_position: Duration::ZERO,
+            loop_position,
+            last_start: Instant::now(),
+            song_position: Duration::ZERO,
+            song_duration,
+            playing: false,
+            player_speed: 1.0 // Start with normal speed by default
+        }
+    }
 
     pub fn playing(&self) -> bool {
         self.playing
@@ -39,6 +60,10 @@ impl SongPlayer {
         self.playing = true;
     }
 
+    pub fn seek(&mut self, location: &Duration) {
+        self.song_position = *location;
+    }
+
     pub fn jump_forwards(&mut self, diff: &Duration) {
         self.song_position += *diff;
     }
@@ -51,6 +76,7 @@ impl SongPlayer {
 impl Default for SongPlayer {
     fn default() -> Self {
         Self {
+            current_song: Song::empty(),
             start_position: Duration::ZERO,
             loop_position: Duration::ZERO,
             last_start: Instant::now(),
