@@ -1,14 +1,24 @@
 use crossbeam_channel::bounded;
 use log::info;
 use metalforge_lib::engine::{Engine, EngineChannel, EngineCommand};
+use crate::tui::preload_menu;
 use crate::ui::UI;
 
+mod config;
 mod ui;
+mod tui;
 
 const QUEUE_SIZE: usize = 64;
 
-fn main() {
-    log::info!("Initialising application...");
+fn main() -> color_eyre::Result<()> {
+    color_eyre::install()?;
+    ratatui::run(preload_menu)?;
+    run_gui();
+    Ok(())
+}
+
+fn run_gui() {
+    info!("Initialising application...");
 
     let (control_tx, _control_rx) = bounded(QUEUE_SIZE);
     let (engine_tx, engine_rx) = bounded(QUEUE_SIZE);
@@ -28,5 +38,5 @@ fn main() {
     let _ = control_tx.send(EngineCommand::Quit);
     engine_thread.join().expect("Failed to join engine thread");
 
-    log::info!("Exiting...");
+    info!("Exiting...");
 }
