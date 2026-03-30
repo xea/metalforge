@@ -5,6 +5,9 @@ use crossbeam_channel::{Receiver, Sender};
 use log::{debug, error};
 use rodio::{MixerDeviceSink, Player};
 use rodio::decoder::DecoderBuilder;
+use crate::library::Library;
+use crate::library::songfile::SongFile;
+use crate::song::song::Song;
 
 /// `Engine` is responsible for handling input and output devices and managing playback.
 pub struct Engine {
@@ -13,11 +16,12 @@ pub struct Engine {
     event_rx: Receiver<EngineEvent>,
     event_tx: Sender<EngineEvent>,
     _output_sink: MixerDeviceSink,
-    output_player: Player
+    output_player: Player,
+    library: Library
 }
 
 impl Engine {
-    pub fn new(command_tx: Sender<EngineCommand>, command_rx: Receiver<EngineCommand>, event_tx: Sender<EngineEvent>, event_rx: Receiver<EngineEvent>) -> Self {
+    pub fn new(command_tx: Sender<EngineCommand>, command_rx: Receiver<EngineCommand>, event_tx: Sender<EngineEvent>, event_rx: Receiver<EngineEvent>, library: Library) -> Self {
         let output_sink = rodio::DeviceSinkBuilder::open_default_sink()
             .expect("Cannot open audio stream");
 
@@ -29,7 +33,8 @@ impl Engine {
             event_rx,
             event_tx,
             _output_sink: output_sink,
-            output_player: player
+            output_player: player,
+            library
         }
     }
 
@@ -50,15 +55,19 @@ impl Engine {
     }
 
     fn handle_command(&self, event: &EngineCommand) -> bool {
-        match *event {
+        match event {
             EngineCommand::Quit => return self.quit(),
             EngineCommand::Pause => self.pause(),
             EngineCommand::Resume => self.resume(),
-            EngineCommand::Seek(duration) => self.seek(duration),
-            EngineCommand::ChangeSpeed(speed) => self.change_speed(speed),
-            EngineCommand::LoadSong => self.load_song("./examples/sample_song/Sandbox-24bit-44k.ogg"),
+            EngineCommand::Seek(duration) => self.seek(*duration),
+            EngineCommand::ChangeSpeed(speed) => self.change_speed(*speed),
+            EngineCommand::LoadSong(songfile) => self.load_songfile(songfile), //self.load_song("./examples/sample_song/Sandbox-24bit-44k.ogg"),
         }
         true
+    }
+
+    fn load_songfile(&self, songfile: &SongFile) {
+        self.load_song(songfile.song_path.as_str());
     }
 
     fn load_song<P: AsRef<Path>>(&self, path: P) {
@@ -113,7 +122,7 @@ impl Engine {
 }
 
 pub enum EngineCommand {
-    LoadSong,
+    LoadSong(SongFile),
     Seek(Duration),
     Pause,
     Resume,
@@ -122,6 +131,8 @@ pub enum EngineCommand {
 }
 
 pub enum EngineEvent {
+    LibraryReady(Library),
+    SongLoaded(Song)
 }
 
 pub struct EngineChannel {

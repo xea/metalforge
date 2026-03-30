@@ -4,16 +4,17 @@ mod cursor;
 mod info;
 
 use crate::ui::player::cursor::{Cursor, CursorBundle};
-use crate::ui::player::event::{handle_events, handle_keyboard, handle_window_events, SeekLocation, PlayerEvent, handle_engine_events};
+use crate::ui::player::event::{handle_events, handle_keyboard, PlayerEvent, SeekLocation};
 use crate::ui::player::info::{setup_info, update_info};
 use crate::ui::player::song_player::{PlayerState, SongPlayer};
-use bevy::app::{App, FixedUpdate, Startup, Update};
+use crate::ui::AppState;
+use bevy::app::{App, FixedUpdate, Update};
 use bevy::asset::{AssetServer, Assets};
 use bevy::camera::{Camera2d, ClearColor, Projection};
 use bevy::color::{Color, Luminance};
 use bevy::math::{Vec2, Vec3};
 use bevy::mesh::Mesh;
-use bevy::prelude::{AppExtStates, Commands, Component, LineBreak, MessageWriter, Query, Res, ResMut, Resource, Sprite, Transform, With, Without};
+use bevy::prelude::{in_state, AppExtStates, Commands, Component, IntoScheduleConfigs, LineBreak, MessageWriter, OnEnter, Query, Res, ResMut, Resource, Sprite, Transform, With, Without};
 use bevy::sprite::{BorderRect, SpriteImageMode, Text2d, Text2dShadow, TextureSlicer};
 use bevy::sprite_render::ColorMaterial;
 use bevy::text::{Justify, TextBounds, TextColor, TextFont, TextLayout};
@@ -36,12 +37,15 @@ pub fn player_plugin(app: &mut App) {
         .insert_resource(SongPlayer::new(Song::test_song()))
         .insert_resource(CameraPosition::default())
         .insert_resource(ClearColor(Color::srgb(0.06, 0.06, 0.10)))
-        .add_systems(Startup, (setup_player, setup_info, create_camera))
-        .add_systems(Update, (handle_keyboard, handle_events))
-        .add_systems(FixedUpdate, (update_position, update_info, update_markers))
-        .add_systems(FixedUpdate, (handle_window_events, handle_engine_events))
-        .add_systems(FixedUpdate, check_loop)
-        .add_systems(Update, update_camera)
+        .add_systems(OnEnter(AppState::Player), (setup_player, setup_info))
+        .add_systems(Update, (handle_keyboard, handle_events)
+            .run_if(in_state(AppState::Player)))
+        .add_systems(FixedUpdate, (update_position, update_info, update_markers)
+            .run_if(in_state(AppState::Player)))
+        .add_systems(FixedUpdate, check_loop
+            .run_if(in_state(AppState::Player)))
+        .add_systems(Update, update_camera
+            .run_if(in_state(AppState::Player)))
         .add_message::<PlayerEvent>()
     ;
 }
@@ -253,11 +257,6 @@ fn create_cursor(commands: &mut Commands) {
     commands.spawn(CursorBundle::new());
 }
 
-fn create_camera(mut commands: Commands) {
-    commands.spawn((
-        Camera2d,
-    ));
-}
 
 /// Updates the camera position at a fixed frame rate
 fn update_position(time: Res<Time>, mut camera_position: ResMut<CameraPosition>, mut player: ResMut<SongPlayer>) {

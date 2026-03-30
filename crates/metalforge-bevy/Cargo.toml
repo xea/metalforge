@@ -12,8 +12,6 @@ bevy_framepace = "0.21"
 crossbeam-channel = "0.5"
 # For logging
 log = "0.4"
-ratatui = "0.30"
-crossterm = "0.29"
 color-eyre = "0.6"
 
 # Serialisation
