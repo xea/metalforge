@@ -18,7 +18,7 @@ pub struct Song {
     #[serde(rename = "SongLengthSeconds")]
     pub song_length_seconds: f32,
 
-    #[serde(rename = "A440CentsOffset")]
+    #[serde(rename = "A440CentsOffset", default)]
     pub a440_cent_offset: i16,
 
     #[serde(rename = "InstrumentParts")]

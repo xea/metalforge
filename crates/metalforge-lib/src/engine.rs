@@ -17,11 +17,10 @@ pub struct Engine {
     event_tx: Sender<EngineEvent>,
     _output_sink: MixerDeviceSink,
     output_player: Player,
-    library: Library
 }
 
 impl Engine {
-    pub fn new(command_tx: Sender<EngineCommand>, command_rx: Receiver<EngineCommand>, event_tx: Sender<EngineEvent>, event_rx: Receiver<EngineEvent>, library: Library) -> Self {
+    pub fn new(command_tx: Sender<EngineCommand>, command_rx: Receiver<EngineCommand>, event_tx: Sender<EngineEvent>, event_rx: Receiver<EngineEvent>) -> Self {
         let output_sink = rodio::DeviceSinkBuilder::open_default_sink()
             .expect("Cannot open audio stream");
 
@@ -34,7 +33,6 @@ impl Engine {
             event_tx,
             _output_sink: output_sink,
             output_player: player,
-            library
         }
     }
 
@@ -48,14 +46,20 @@ impl Engine {
 
     pub fn main_loop(&self) {
         while let Ok(command) = self.command_rx.recv() {
-            if !self.handle_command(&command) {
+            if !self.handle_command(&command, &self.event_tx) {
                 break;
             }
         }
     }
 
-    fn handle_command(&self, event: &EngineCommand) -> bool {
-        match event {
+    fn handle_command(&self, command: &EngineCommand, event_tx: &Sender<EngineEvent>) -> bool {
+        match command {
+            EngineCommand::ScanLibrary(paths) => {
+                let song_paths = paths.iter().map(|s| s.as_str()).collect();
+                let library = Library::scan_directories(song_paths);
+
+                let _ = event_tx.send(EngineEvent::LibraryUpdated(library));
+            }
             EngineCommand::Quit => return self.quit(),
             EngineCommand::Pause => self.pause(),
             EngineCommand::Resume => self.resume(),
@@ -122,6 +126,7 @@ impl Engine {
 }
 
 pub enum EngineCommand {
+    ScanLibrary(Vec<String>),
     LoadSong(SongFile),
     Seek(Duration),
     Pause,
@@ -131,13 +136,13 @@ pub enum EngineCommand {
 }
 
 pub enum EngineEvent {
-    LibraryReady(Library),
+    LibraryUpdated(Library),
     SongLoaded(Song)
 }
 
 pub struct EngineChannel {
     tx: Sender<EngineCommand>,
-    rx: Receiver<EngineEvent>
+    rx: Receiver<EngineEvent>,
 }
 
 impl EngineChannel {

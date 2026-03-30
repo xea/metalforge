@@ -3,11 +3,12 @@ use crate::format::opensongchart::drum_part::DrumSongNotes;
 use crate::format::opensongchart::instrument_part::{InstrumentType, SongInstrumentNotes};
 use crate::format::opensongchart::keyboard_part::SongKeyboardNotes;
 use crate::format::opensongchart::song::Song;
-use crate::format::opensongchart::vocal_part::SongVocal;
+use crate::format::opensongchart::vocal_part::{SongVocal, SongVocals};
 use crate::library::songfile::{Format, SongFile};
 use std::fs::File;
 use std::io::{BufReader, Error};
 use std::path::Path;
+use log::{debug, info};
 
 pub mod song;
 pub mod arrangement;
@@ -29,7 +30,7 @@ pub enum Part {
     InstrumentPart(SongInstrumentNotes),
     KeyboardPart(SongKeyboardNotes),
     DrumPart(DrumSongNotes),
-    VocalPart(SongVocal)
+    VocalPart(SongVocals)
 }
 
 pub fn load_open_song_chart<P: AsRef<Path>>(dir: P) -> Result<Option<SongFile>, Error> {
@@ -45,21 +46,24 @@ pub fn load_open_song_chart<P: AsRef<Path>>(dir: P) -> Result<Option<SongFile>, 
     )
 }
 
-pub fn scan_directory<P: AsRef<Path>>(dir: P) -> Result<Option<OpenSongChart>, Error> {
-    let file = File::open(&dir)?;
-    let metadata = file.metadata()?;
+pub fn scan_directory<P: AsRef<Path>>(path: P) -> Result<Option<OpenSongChart>, Error> {
+    debug!("Scanning name=\"{:?}\" exists={:?}", path.as_ref(), path.as_ref().exists());
 
-    if metadata.is_dir() {
-        let mut song_json_path = Path::to_path_buf(dir.as_ref());
+    if path.as_ref().is_dir() {
+        let mut song_json_path = Path::to_path_buf(path.as_ref());
         song_json_path.push("song.json");
+
+        info!("Reading song.json");
 
         if std::fs::exists(song_json_path.as_path())? {
             let song_reader = BufReader::new(File::open(song_json_path)?);
             let song: Song = serde_json::from_reader(song_reader)?;
 
             // song.json has been read and parsed, look for arrangement.json
-            let mut arrangement_json_path = Path::to_path_buf(dir.as_ref());
+            let mut arrangement_json_path = Path::to_path_buf(path.as_ref());
             arrangement_json_path.push("arrangement.json");
+
+            info!("Reading arrangement.json");
 
             if std::fs::exists(arrangement_json_path.as_path())? {
                 let arrangement_reader = BufReader::new(File::open(arrangement_json_path)?);
@@ -68,8 +72,10 @@ pub fn scan_directory<P: AsRef<Path>>(dir: P) -> Result<Option<OpenSongChart>, E
                 let mut parts = vec![];
 
                 for part in &song.instrument_parts {
-                    let mut part_path = Path::to_path_buf(dir.as_ref());
+                    let mut part_path = Path::to_path_buf(path.as_ref());
                     part_path.push(format!("{}.json", part.instrument_name.as_str()));
+
+                    info!("Reading {}.json", part.instrument_name.as_str());
 
                     if std::fs::exists(part_path.as_path())? {
                         let part_reader = BufReader::new(File::open(part_path)?);
@@ -85,7 +91,8 @@ pub fn scan_directory<P: AsRef<Path>>(dir: P) -> Result<Option<OpenSongChart>, E
                                 Part::DrumPart(serde_json::from_reader(part_reader)?)
                             }
                             InstrumentType::Vocals => {
-                                Part::VocalPart(serde_json::from_reader(part_reader)?)
+                                let vocals: Vec<SongVocal> = serde_json::from_reader(part_reader)?;
+                                Part::VocalPart(SongVocals { vocals })
                             }
                         };
 
@@ -93,7 +100,9 @@ pub fn scan_directory<P: AsRef<Path>>(dir: P) -> Result<Option<OpenSongChart>, E
                     }
                 }
 
-                let mut ogg_path = Path::to_path_buf(dir.as_ref());
+                info!("Reading song.ogg");
+
+                let mut ogg_path = Path::to_path_buf(path.as_ref());
                 ogg_path.push("song.ogg");
 
                 if std::fs::exists(ogg_path.as_path())? {

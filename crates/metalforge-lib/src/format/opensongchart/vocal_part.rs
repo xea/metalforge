@@ -1,6 +1,12 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
+pub struct SongVocals {
+    // Note: this struct does not exist in the original spec, I invented it to make it consistent with the rest of the spec
+    pub vocals: Vec<SongVocal>
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct SongVocal {
 
     #[serde(rename = "Vocal")]

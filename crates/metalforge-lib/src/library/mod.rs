@@ -1,16 +1,22 @@
 use crate::format::load_dir;
 use crate::library::songfile::SongFile;
+use log::{error, warn};
 use std::io::Error;
-use std::path::{Iter, Path};
-use log::warn;
+use std::path::{Path};
 
 pub mod songfile;
 
 pub struct Library {
-    songs: Vec<SongFile>
+    pub songs: Vec<SongFile>
 }
 
 impl Library {
+
+    pub fn empty() -> Self {
+        Self {
+            songs: vec![]
+        }
+    }
 
     pub fn scan_directories<P: AsRef<Path>>(paths: Vec<P>) -> Library {
         let mut songs = vec![];
@@ -35,8 +41,10 @@ pub fn scan_directory<P: AsRef<Path>>(path: P) -> Result<Vec<SongFile>, Error> {
     for maybe_entry in std::fs::read_dir(path)? {
         let entry = maybe_entry?;
 
-        if let Ok(Some(songfile)) = load_dir(entry.path()) {
-            songs.push(songfile);
+        match load_dir(entry.path()) {
+            Ok(Some(songfile)) => songs.push(songfile),
+            Ok(None) => {},
+            Err(error) => error!("Failed to scan library {:?}: {:?}", entry.path(), error),
         }
     }
 

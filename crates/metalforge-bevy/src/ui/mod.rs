@@ -11,6 +11,7 @@ use bevy::winit::WinitSettings;
 use bevy::DefaultPlugins;
 use bevy_dev_tools::fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin, FrameTimeGraphConfig};
 use metalforge_lib::engine::{EngineChannel, EngineCommand};
+use crate::config::Config;
 
 #[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum AppState {
@@ -20,7 +21,8 @@ pub enum AppState {
 
 #[derive(Resource)]
 pub struct UIEngine {
-    channel: EngineChannel
+    channel: EngineChannel,
+    config: Config
 }
 
 impl UIEngine {
@@ -34,13 +36,16 @@ pub struct UI {
 }
 
 impl UI {
-    pub fn new(engine: EngineChannel) -> Self {
+    pub fn new(engine: EngineChannel, config: Config) -> Self {
         let mut app = App::new();
 
         app.add_plugins(DefaultPlugins
             .set(window_plugin())
-            .set(image_plugin()))
-            .add_plugins(fps_overlay_plugin());
+            .set(image_plugin()));
+
+        if config.debug.show_fps {
+            app.add_plugins(fps_overlay_plugin());
+        }
         /*
         app.add_plugins(FrameTimeDiagnosticsPlugin {
             max_history_length: 60,
@@ -55,7 +60,7 @@ impl UI {
         app
             .insert_state(AppState::MainMenu)
             .insert_resource(WinitSettings::game())
-            .insert_resource(UIEngine { channel: engine })
+            .insert_resource(UIEngine { channel: engine, config })
             .add_systems(Startup, create_camera)
             .add_systems(FixedUpdate, handle_window_events)
             .add_plugins(menu::main_menu);

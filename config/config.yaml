@@ -1,8 +1,9 @@
 ---
-debug: {}
+debug:
+  show_fps: false
 display:
   wireframe: false
-  windowType: game
+  window_type: game
 library:
   paths:
-    - "./library"
+    - "library"

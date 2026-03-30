@@ -11,21 +11,21 @@ pub struct InstrumentPart {
     pub instrument_type: InstrumentType,
 
     #[serde(rename = "ArrangementName")]
-    pub arrangement_name: String,
+    pub arrangement_name: Option<String>,
 
     #[serde(rename = "SongAudio")]
-    pub song_audio: String,
+    pub song_audio: Option<String>,
 
     #[serde(rename = "SongStem")]
-    pub song_stem: String,
+    pub song_stem: Option<String>,
 
     #[serde(rename = "Tuning")]
-    pub tuning: StringTuning,
+    pub tuning: Option<StringTuning>,
 
-    #[serde(rename = "CapoFret")]
+    #[serde(rename = "CapoFret", default)]
     pub capo_fret: i16,
 
-    #[serde(rename = "SongDifficulty")]
+    #[serde(rename = "SongDifficulty", default)]
     pub song_difficulty: f32
 }
 
@@ -80,49 +80,87 @@ pub struct SongNote {
 
     /// Start offset of the note in seconds
     #[serde(rename = "TimeOffset")]
-    pub time_offset: f32,
+    pub time_offset: Option<f32>,
 
     /// Sustain length of the note in seconds
     #[serde(rename = "TimeLength")]
-    pub time_length: f32,
+    pub time_length: Option<f32>,
 
     /// Fret number of the note - "0" is open string, "-1" is unfretted
     #[serde(rename = "Fret")]
-    pub fret: i8,
+    pub fret: Option<i8>,
 
     /// String of the note (zero-based)
     #[serde(rename = "String")]
-    pub string: i8,
+    pub string: Option<i8>,
 
     /// Array of bend offsets
-    #[serde(rename = "CentsOffset")]
+    #[serde(rename = "CentsOffset", default)]
     pub cents_offset: Vec<CentsOffset>,
 
     /// Song technique flags
-    #[serde(rename = "Techniques")]
-    pub techniques: SongNoteTechniques,
+    #[serde(rename = "Techniques", with = "song_techniques", default)]
+    pub techniques: Vec<SongNoteTechniques>,
 
     /// Bottom fret of hand position
     #[serde(rename = "HandFret")]
-    pub hand_fret: i8,
+    pub hand_fret: Option<i8>,
 
     /// Fret that note slides to over the course of its sustain
     #[serde(rename = "SlideFret")]
-    pub slide_fret: i8,
+    pub slide_fret: Option<i8>,
 
     /// Index into chord array to use for notes
     #[serde(rename = "ChordID")]
-    pub chord_id: i16,
+    pub chord_id: Option<i16>,
 
     /// Index into chord array to use for fingering
     #[serde(rename = "FingerID")]
-    pub finger_id: i8,
+    pub finger_id: Option<i8>,
 
 }
 
 impl SongNote {
 
     //public float EndTime => TimeOffset + TimeLength;
+}
+
+mod song_techniques {
+    use log::warn;
+    use serde::{Deserialize, Deserializer, Serializer};
+    use crate::format::opensongchart::instrument_part::SongNoteTechniques;
+
+    pub fn serialize<S>(
+        techniques: &Vec<SongNoteTechniques>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        // let s = format!("{}", date.format(FORMAT));
+        // let s = techniques.iter().map(|technique| serde_json::to_string(technique)).collect().join(",");
+        // serializer.serialize_str(&s)
+        unimplemented!()
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<SongNoteTechniques>, D::Error> where D: Deserializer<'de> {
+        let s = String::deserialize(deserializer)?;
+
+        let mut techniques = vec![];
+
+        for part in s.split(",") {
+            let quoted_part = format!("\"{}\"", part.trim());
+            let tq_result: serde_json::Result<SongNoteTechniques> = serde_json::from_str(quoted_part.as_str());
+
+            if let Ok(technique) = tq_result {
+                techniques.push(technique);
+            } else {
+                warn!("Failed to parse technique: {}", s);
+            }
+        }
+
+        Ok(techniques)
+    }
 }
 
 /// Offset structure for bends

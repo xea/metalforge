@@ -3,7 +3,6 @@ use crate::ui::UI;
 use crossbeam_channel::bounded;
 use log::info;
 use metalforge_lib::engine::{Engine, EngineChannel, EngineCommand};
-use metalforge_lib::library::{Library};
 use std::fs::File;
 use std::io::{Error, Read};
 
@@ -15,7 +14,7 @@ const QUEUE_SIZE: usize = 64;
 fn main() -> color_eyre::Result<()> {
     let config = load_config()?;
 
-    run_gui(&config);
+    run_gui(config);
 
     Ok(())
 }
@@ -30,20 +29,17 @@ fn load_config() -> Result<Config, Error> {
     Ok(config)
 }
 
-fn run_gui(config: &Config) {
+fn run_gui(config: Config) {
     info!("Initialising application...");
-
-    let song_paths = config.library.paths.iter().map(|s| s.as_str()).collect();
-    let library = Library::scan_directories(song_paths);
 
     let (control_tx, _control_rx) = bounded(QUEUE_SIZE);
     let (engine_tx, engine_rx) = bounded(QUEUE_SIZE);
     let (event_tx, event_rx) = bounded(QUEUE_SIZE);
 
-    let mut ui = UI::new(EngineChannel::new(engine_tx.clone(), event_rx.clone()));
+    let mut ui = UI::new(EngineChannel::new(engine_tx.clone(), event_rx.clone()), config);
 
     let engine_thread = std::thread::spawn(move || {
-        let engine = Engine::new(engine_tx, engine_rx, event_tx, event_rx, library);
+        let engine = Engine::new(engine_tx, engine_rx, event_tx, event_rx);
         engine.main_loop();
     });
 

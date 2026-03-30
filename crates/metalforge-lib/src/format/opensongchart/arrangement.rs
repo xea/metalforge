@@ -18,7 +18,7 @@ pub struct SongBeat {
     #[serde(rename = "TimeOffset")]
     pub time_offset: f32,
 
-    #[serde(rename = "IsMeasure")]
+    #[serde(rename = "IsMeasure", default)]
     pub is_measure: bool,
 
     #[serde(rename = "EndTime")]
@@ -30,7 +30,7 @@ impl SongEvent for SongBeat {}
 #[derive(Serialize, Deserialize)]
 pub struct SongSection {
 
-    #[serde(rename = "Beats")]
+    #[serde(rename = "Name")]
     pub name: String,
 
     #[serde(rename = "StartTime")]
