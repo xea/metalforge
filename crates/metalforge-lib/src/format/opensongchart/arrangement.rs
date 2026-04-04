@@ -22,7 +22,7 @@ pub struct SongBeat {
     pub is_measure: bool,
 
     #[serde(rename = "EndTime")]
-    pub end_time: f32
+    pub end_time: Option<f32>
 }
 
 impl SongEvent for SongBeat {}
@@ -34,9 +34,9 @@ pub struct SongSection {
     pub name: String,
 
     #[serde(rename = "StartTime")]
-    pub start_time: f32,
+    pub start_time: Option<f32>,
 
     #[serde(rename = "EndTime")]
-    pub end_time: f32
+    pub end_time: Option<f32>
 }
 

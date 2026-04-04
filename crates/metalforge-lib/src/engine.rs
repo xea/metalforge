@@ -153,7 +153,9 @@ impl EngineChannel {
     }
 
     pub fn send(&self, command: EngineCommand) {
-        self.tx.send(command).expect("Failed to send engine command");
+        if let Err(error) = self.tx.send(command) {
+            error!("Failed to send engine command: {:?}", error);
+        }
     }
 
     pub fn receive(&self) -> Option<EngineEvent> {

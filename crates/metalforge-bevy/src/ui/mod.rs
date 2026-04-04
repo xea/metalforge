@@ -1,17 +1,19 @@
 mod player;
 pub mod menu;
 
-use bevy::app::{App, FixedUpdate, PluginGroup, Plugins, Startup};
+use crate::config::Config;
+use bevy::app::{App, PluginGroup, Startup, Update};
 use bevy::camera::Camera2d;
 use bevy::image::ImagePlugin;
+use bevy::math::Vec2;
 use bevy::prelude::{AppExtStates, Commands, Component, Entity, MessageReader, Query, ResMut, Resource, States, With};
 use bevy::utils::default;
-use bevy::window::{Window, WindowCloseRequested, WindowPlugin, WindowTheme};
+use bevy::window::{PrimaryWindow, Window, WindowCloseRequested, WindowPlugin, WindowResized, WindowTheme};
 use bevy::winit::WinitSettings;
 use bevy::DefaultPlugins;
 use bevy_dev_tools::fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin, FrameTimeGraphConfig};
 use metalforge_lib::engine::{EngineChannel, EngineCommand};
-use crate::config::Config;
+use crate::ui::menu::MenuStructure;
 
 #[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum AppState {
@@ -22,7 +24,8 @@ pub enum AppState {
 #[derive(Resource)]
 pub struct UIEngine {
     channel: EngineChannel,
-    config: Config
+    window_size: Vec2,
+    config: Config,
 }
 
 impl UIEngine {
@@ -46,6 +49,7 @@ impl UI {
         if config.debug.show_fps {
             app.add_plugins(fps_overlay_plugin());
         }
+
         /*
         app.add_plugins(FrameTimeDiagnosticsPlugin {
             max_history_length: 60,
@@ -60,11 +64,15 @@ impl UI {
         app
             .insert_state(AppState::MainMenu)
             .insert_resource(WinitSettings::game())
-            .insert_resource(UIEngine { channel: engine, config })
-            .add_systems(Startup, create_camera)
-            .add_systems(FixedUpdate, handle_window_events)
-            .add_plugins(menu::main_menu);
-            //.add_plugins(player::player_plugin);
+            .insert_resource(UIEngine {
+                channel: engine,
+                config,
+                window_size: Vec2::new(0.0, 0.0),
+            })
+            .add_systems(Startup, (update_window_size, create_camera))
+            .add_systems(Update, (handle_window_resized, handle_window_closed))
+            .add_plugins(menu::main_menu)
+            .add_plugins(player::player_plugin);
 
         Self {
             app
@@ -109,10 +117,32 @@ fn create_camera(mut commands: Commands) {
     commands.spawn( Camera2d);
 }
 
-pub fn handle_window_events(mut window_close_events: MessageReader<WindowCloseRequested>, engine: ResMut<UIEngine>) {
+fn handle_window_closed(mut window_close_events: MessageReader<WindowCloseRequested>, engine: ResMut<UIEngine>) {
     for _event in window_close_events.read() {
         engine.send(EngineCommand::Quit);
     }
+}
+
+fn handle_window_resized(mut window_resized_events: MessageReader<WindowResized>, mut engine: ResMut<UIEngine>) {
+    for event in window_resized_events.read() {
+        engine.window_size.x = event.width;
+        engine.window_size.y = event.height;
+    }
+}
+
+fn update_window_size(window_q: Query<&Window, With<PrimaryWindow>>, mut engine: ResMut<UIEngine>) {
+    for window in window_q {
+        engine.window_size.x = window.width();
+        engine.window_size.y = window.height();
+    }
+}
+
+pub fn exit_menu<T: Component>(mut commands: Commands, query: Query<Entity, With<T>>, mut menu: ResMut<MenuStructure>) {
+    for entity in query.iter() {
+        commands.entity(entity).despawn();
+    }
+
+    menu.selected_idx = usize::MAX;
 }
 
 pub fn despawn_screen<T: Component>(mut commands: Commands, query: Query<Entity, With<T>>) {

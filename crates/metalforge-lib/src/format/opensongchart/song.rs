@@ -19,7 +19,7 @@ pub struct Song {
     pub song_length_seconds: f32,
 
     #[serde(rename = "A440CentsOffset", default)]
-    pub a440_cent_offset: i16,
+    pub a440_cent_offset: f32,
 
     #[serde(rename = "InstrumentParts")]
     pub instrument_parts: Vec<InstrumentPart>

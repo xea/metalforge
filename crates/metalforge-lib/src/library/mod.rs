@@ -1,5 +1,5 @@
 use crate::format::load_dir;
-use crate::library::songfile::SongFile;
+use crate::library::songfile::{Format, SongFile};
 use log::{error, warn};
 use std::io::Error;
 use std::path::{Path};
@@ -29,6 +29,27 @@ impl Library {
             }
         }
 
+        songs.push(SongFile {
+            title: "Test Title 1".to_string(),
+            artist: "Test Artist 1".to_string(),
+            format: Format::OpenSongChart,
+            song_path: "".to_string(),
+        });
+
+        songs.push(SongFile {
+            title: "Test Title 2".to_string(),
+            artist: "Test Artist 2".to_string(),
+            format: Format::OpenSongChart,
+            song_path: "".to_string(),
+        });
+
+        songs.push(SongFile {
+            title: "Test Title 3".to_string(),
+            artist: "Test Artist 3".to_string(),
+            format: Format::OpenSongChart,
+            song_path: "".to_string(),
+        });
+
         Library {
             songs
         }
@@ -43,10 +64,22 @@ pub fn scan_directory<P: AsRef<Path>>(path: P) -> Result<Vec<SongFile>, Error> {
 
         match load_dir(entry.path()) {
             Ok(Some(songfile)) => songs.push(songfile),
-            Ok(None) => {},
+            Ok(None) => {
+                if entry.metadata()?.is_dir() {
+                    let mut sub_result = scan_directory(entry.path().as_path())?;
+                    songs.append(&mut sub_result);
+                }
+            },
             Err(error) => error!("Failed to scan library {:?}: {:?}", entry.path(), error),
         }
     }
+
+    songs.sort_by(|a, b| {
+        let artist_cmd = a.artist.as_str().cmp(b.artist.as_str());
+        let title_cmd = a.title.as_str().cmp(b.title.as_str());
+
+        artist_cmd.then(title_cmd)
+    });
 
     Ok(songs)
 }

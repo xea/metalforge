@@ -5,10 +5,10 @@ use crate::format::opensongchart::keyboard_part::SongKeyboardNotes;
 use crate::format::opensongchart::song::Song;
 use crate::format::opensongchart::vocal_part::{SongVocal, SongVocals};
 use crate::library::songfile::{Format, SongFile};
+use log::{debug, info};
 use std::fs::File;
 use std::io::{BufReader, Error};
 use std::path::Path;
-use log::{debug, info};
 
 pub mod song;
 pub mod arrangement;
@@ -53,7 +53,7 @@ pub fn scan_directory<P: AsRef<Path>>(path: P) -> Result<Option<OpenSongChart>, 
         let mut song_json_path = Path::to_path_buf(path.as_ref());
         song_json_path.push("song.json");
 
-        info!("Reading song.json");
+        debug!("Reading song.json");
 
         if std::fs::exists(song_json_path.as_path())? {
             let song_reader = BufReader::new(File::open(song_json_path)?);
@@ -63,7 +63,7 @@ pub fn scan_directory<P: AsRef<Path>>(path: P) -> Result<Option<OpenSongChart>, 
             let mut arrangement_json_path = Path::to_path_buf(path.as_ref());
             arrangement_json_path.push("arrangement.json");
 
-            info!("Reading arrangement.json");
+            debug!("Reading arrangement.json");
 
             if std::fs::exists(arrangement_json_path.as_path())? {
                 let arrangement_reader = BufReader::new(File::open(arrangement_json_path)?);
@@ -75,7 +75,7 @@ pub fn scan_directory<P: AsRef<Path>>(path: P) -> Result<Option<OpenSongChart>, 
                     let mut part_path = Path::to_path_buf(path.as_ref());
                     part_path.push(format!("{}.json", part.instrument_name.as_str()));
 
-                    info!("Reading {}.json", part.instrument_name.as_str());
+                    debug!("Reading {}.json", part.instrument_name.as_str());
 
                     if std::fs::exists(part_path.as_path())? {
                         let part_reader = BufReader::new(File::open(part_path)?);
@@ -100,7 +100,7 @@ pub fn scan_directory<P: AsRef<Path>>(path: P) -> Result<Option<OpenSongChart>, 
                     }
                 }
 
-                info!("Reading song.ogg");
+                debug!("Reading song.ogg");
 
                 let mut ogg_path = Path::to_path_buf(path.as_ref());
                 ogg_path.push("song.ogg");

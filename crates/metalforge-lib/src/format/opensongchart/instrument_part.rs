@@ -116,7 +116,7 @@ pub struct SongNote {
 
     /// Index into chord array to use for fingering
     #[serde(rename = "FingerID")]
-    pub finger_id: Option<i8>,
+    pub finger_id: Option<i16>,
 
 }
 
