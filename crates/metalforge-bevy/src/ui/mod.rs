@@ -142,7 +142,7 @@ pub fn exit_menu<T: Component>(mut commands: Commands, query: Query<Entity, With
         commands.entity(entity).despawn();
     }
 
-    menu.selected_idx = usize::MAX;
+    menu.selected_idx = 0;
 }
 
 pub fn despawn_screen<T: Component>(mut commands: Commands, query: Query<Entity, With<T>>) {

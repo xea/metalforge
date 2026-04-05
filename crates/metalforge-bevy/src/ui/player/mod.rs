@@ -2,19 +2,22 @@ mod song_player;
 mod event;
 mod cursor;
 mod info;
+mod menu;
 
+use crate::ui::menu::display_menu;
 use crate::ui::player::cursor::{Cursor, CursorBundle};
 use crate::ui::player::event::{handle_events, handle_keyboard, PlayerEvent, SeekLocation};
 use crate::ui::player::info::{setup_info, update_info};
+use crate::ui::player::menu::setup_song_menu;
 use crate::ui::player::song_player::{PlayerState, SongPlayer};
-use crate::ui::AppState;
+use crate::ui::{despawn_screen, AppState};
 use bevy::app::{App, FixedUpdate, Update};
 use bevy::asset::{AssetServer, Assets};
 use bevy::camera::{Camera2d, ClearColor, Projection};
 use bevy::color::{Color, Luminance};
 use bevy::math::{Vec2, Vec3};
 use bevy::mesh::Mesh;
-use bevy::prelude::{in_state, AppExtStates, Commands, Component, IntoScheduleConfigs, LineBreak, MessageWriter, OnEnter, Query, Res, ResMut, Resource, Sprite, Transform, With, Without};
+use bevy::prelude::{in_state, AppExtStates, Commands, Component, IntoScheduleConfigs, LineBreak, MessageWriter, OnEnter, OnExit, Query, Res, ResMut, Resource, Sprite, Transform, With, Without};
 use bevy::sprite::{BorderRect, SpriteImageMode, Text2d, Text2dShadow, TextureSlicer};
 use bevy::sprite_render::ColorMaterial;
 use bevy::text::{Justify, TextBounds, TextColor, TextFont, TextLayout};
@@ -22,12 +25,15 @@ use bevy::time::{Fixed, Time};
 use bevy::utils::default;
 use metalforge_lib::song::guitar::GuitarPart;
 use metalforge_lib::song::instrument_part::InstrumentPartType;
-use metalforge_lib::song::song::Song;
+use metalforge_lib::song::Song;
 use std::time::Duration;
 
 const SCROLL_SPEED: f32 = 100.0;
 const PIXELS_PER_MILLIS: f32 = SCROLL_SPEED / 1000.0;
 const STRING_SPACING: f32 = 45.0;
+
+#[derive(Component)]
+struct OnPlayer;
 
 /// The main song player plugin, this method is responsible for setting up the camera, rendering the
 /// song view, etc.
@@ -38,6 +44,12 @@ pub fn player_plugin(app: &mut App) {
         .insert_resource(CameraPosition::default())
         .insert_resource(ClearColor(Color::srgb(0.06, 0.06, 0.10)))
         .add_systems(OnEnter(AppState::Player), (setup_player, setup_info))
+        .add_systems(OnExit(AppState::Player), despawn_screen::<OnPlayer>)
+
+        .add_systems(OnEnter(PlayerState::Menu), (setup_song_menu, display_menu).chain())
+        // .add_systems(OnExit(PlayerState::Menu), despawn_screen::<OnMenu>)
+        // .add_systems(Update, (handle_menu_keyboard_events, highlight_selection, handle_menu_events)
+        //     .run_if(in_state(PlayerState::Menu)))
         .add_systems(Update, (handle_keyboard, handle_events)
             .run_if(in_state(AppState::Player)))
         .add_systems(FixedUpdate, (update_position, update_info, update_markers)
@@ -94,8 +106,8 @@ fn setup_player(
 
     create_background(&mut commands, num_strings, track_length_px);
     create_strings(&mut commands, num_strings, track_length_px);
-    create_beat_lines(&mut commands, &song, part);
-    create_guide_lines(&mut commands, &song, part);
+    create_beat_lines(&mut commands, song, part);
+    create_guide_lines(&mut commands, song, part);
     create_note_sprites(&mut commands, &assert_server, part);
     create_cursor(&mut commands);
     create_markers(&mut commands, &player);
@@ -124,6 +136,7 @@ fn create_note_sprites(commands: &mut Commands, asset_server: &Res<AssetServer>,
                 ..default()
             },
             Transform::from_xyz(x + (len / 2.0), y, 0.0),
+            OnPlayer,
         )).with_children(|parent| {
             parent.spawn((
                 Text2d::new(format!("{}", note.fret)),
@@ -133,6 +146,7 @@ fn create_note_sprites(commands: &mut Commands, asset_server: &Res<AssetServer>,
                     offset: Vec2::new(1.0, -1.0),
                     ..default()
                 },
+                OnPlayer,
             ));
         });
     }
@@ -159,7 +173,8 @@ fn create_beat_lines(commands: &mut Commands, song: &Song, part: &GuitarPart) {
                 color,
                 Vec2::new(beat_width_px, beat_height_px)
             ),
-            Transform::from_xyz(x, y, z)
+            Transform::from_xyz(x, y, z),
+            OnPlayer
         ));
 
         if beat.measure.is_some() {
@@ -175,7 +190,8 @@ fn create_beat_lines(commands: &mut Commands, song: &Song, part: &GuitarPart) {
                     TextFont::from_font_size(11.0),
                     TextColor(Color::srgba(0.6, 0.6, 0.8, 0.9)),
                     TextLayout::new(Justify::Center, LineBreak::NoWrap),
-                    Transform::from_xyz(0.0, -beat_height_px / 2.0 - 20.0, 0.0)
+                    Transform::from_xyz(0.0, -beat_height_px / 2.0 - 20.0, 0.0),
+                    OnPlayer
                 ));
             });
         }
@@ -206,7 +222,8 @@ fn create_guide_lines(commands: &mut Commands, song: &Song, part: &GuitarPart) {
                 Color::srgba(1.0, 1.0, 1.0, 0.85),
                 Vec2::new(notch_width_px, notch_height_px)
             ),
-            Transform::from_xyz(x, y, z)
+            Transform::from_xyz(x, y, z),
+            OnPlayer
         ));
 
     }
@@ -221,7 +238,8 @@ fn create_background(commands: &mut Commands, num_strings: usize, track_length_p
             Color::srgba(0.08, 0.09, 0.16, 0.85),
             Vec2::new(background_width_px, total_height_px)
         ),
-        Transform::from_xyz(track_length_px / 2.0, 0.0, -3.0)
+        Transform::from_xyz(track_length_px / 2.0, 0.0, -3.0),
+        OnPlayer
     ));
 }
 
@@ -232,7 +250,8 @@ fn create_strings(commands: &mut Commands, num_strings: usize, track_length_px: 
 
         commands.spawn((
             Sprite::from_color(color, Vec2::new(track_length_px, 3.0)),
-            Transform::from_xyz(track_length_px / 2.0, y, -1.0)
+            Transform::from_xyz(track_length_px / 2.0, y, -1.0),
+            OnPlayer
         ));
     }
 }
@@ -254,7 +273,7 @@ fn string_color(index: usize) -> Color {
 }
 
 fn create_cursor(commands: &mut Commands) {
-    commands.spawn(CursorBundle::new());
+    commands.spawn((CursorBundle::new(), OnPlayer));
 }
 
 
@@ -277,11 +296,16 @@ fn update_position(time: Res<Time>, mut camera_position: ResMut<CameraPosition>,
 
 /// Calculates and adjusts the position for the camera for each frame, interpolating and extrapolating
 /// per frame as needed.
-fn update_camera(time: Res<Time<Fixed>>, camera_position: Res<CameraPosition>, mut q_camera: Query<(&mut Transform, &mut Projection), (With<Camera2d>, Without<Cursor>)>, mut q_cursor: Query<&mut Transform, (With<Cursor>, Without<Camera2d>)>) {
+fn update_camera(
+    time: Res<Time<Fixed>>,
+    camera_position: Res<CameraPosition>,
+    mut q_camera: Query<(&mut Transform, &mut Projection), (With<Camera2d>, Without<Cursor>)>,
+    mut q_cursor: Query<&mut Transform, (With<Cursor>, Without<Camera2d>)>
+) {
     let f = time.overstep_fraction();
 
-    let mut camera = q_camera.single_mut().unwrap();
-    let mut cursor = q_cursor.single_mut().unwrap();
+    let mut camera = q_camera.single_mut().expect("Failed to find a single camera (probably multiple exist)");
+    let mut cursor = q_cursor.single_mut().expect("Failed to find a single cursor (probably muliple exist)");
 
     camera.0.translation = SCROLL_SPEED * camera_position.previous.lerp(camera_position.current, f);
     cursor.translation = camera.0.translation;
@@ -307,13 +331,15 @@ fn create_markers(commands: &mut Commands, player: &Res<SongPlayer>) {
     commands.spawn((
         LoopStartMarker,
         Sprite::from_color(color, size),
-        Transform::from_xyz(start_x, 0.0, 0.1)
+        Transform::from_xyz(start_x, 0.0, 0.1),
+        OnPlayer
     ));
 
     commands.spawn((
         LoopEndMarker,
         Sprite::from_color(color, size),
-        Transform::from_xyz(end_x, 0.0, 0.1)
+        Transform::from_xyz(end_x, 0.0, 0.1),
+        OnPlayer
     ));
 }
 

@@ -1,8 +1,9 @@
-use bevy::app::AppExit;
-use crate::ui::menu::{MenuId, MenuState, MenuStructure};
+use crate::ui::menu::{MenuId, MenuState, MenuStructure, SongLibrary};
 use crate::ui::{AppState, UIEngine};
+use bevy::app::AppExit;
 use bevy::input::ButtonInput;
 use bevy::prelude::{KeyCode, Message, MessageReader, MessageWriter, NextState, Res, ResMut};
+use log::info;
 use metalforge_lib::engine::EngineCommand;
 
 #[derive(Message, Hash, Ord, PartialOrd, PartialEq, Eq, Copy, Clone)]
@@ -11,12 +12,13 @@ pub(crate) enum MenuEvent {
     NextItemSelected,
     PushMenu(MenuId),
     PopMenu,
-    PlaySong,
+    PlaySong(usize),
+    ExitSong,
     ExitApp,
     Noop
 }
 
-pub(crate) fn handle_keyboard_events(
+pub(crate) fn handle_menu_keyboard_events(
     input: Res<ButtonInput<KeyCode>>,
     mut menu_events: MessageWriter<MenuEvent>,
     menu: Res<MenuStructure>,
@@ -51,7 +53,9 @@ pub(crate) fn handle_menu_events(
     mut menu: ResMut<MenuStructure>,
     engine: Res<UIEngine>,
     mut app_state: ResMut<NextState<AppState>>,
-    mut next_state: ResMut<NextState<MenuState>>
+    mut next_state: ResMut<NextState<MenuState>>,
+    library: Res<SongLibrary>
+
 ) {
     for event in events.read() {
         match event {
@@ -60,10 +64,6 @@ pub(crate) fn handle_menu_events(
             }
             MenuEvent::NextItemSelected => {
                 menu.select_next();
-            }
-            MenuEvent::ExitApp => {
-                app_exit_writer.write(AppExit::Success);
-                engine.send(EngineCommand::Quit);
             }
             MenuEvent::PushMenu(menu_id) => {
                 menu.push_menu(*menu_id);
@@ -74,11 +74,23 @@ pub(crate) fn handle_menu_events(
                     next_state.set(MenuState::SwitchMenu);
                 }
             }
-            MenuEvent::PlaySong => {
+            MenuEvent::PlaySong(song_idx) => {
+                info!("Playing song (idx: {})", *song_idx);
                 app_state.set(AppState::Player);
+                if let Some(song_file) = library.0.songs.get(*song_idx) {
+                    engine.send(EngineCommand::LoadSong(song_file.clone()))
+                }
             }
             MenuEvent::Noop => {},
-
+            MenuEvent::ExitApp => {
+                info!("Exiting application");
+                app_exit_writer.write(AppExit::Success);
+                engine.send(EngineCommand::Quit);
+            }
+            MenuEvent::ExitSong => {
+                info!("Exiting song");
+                engine.send(EngineCommand::UnloadSong);
+            }
         }
     }
 }

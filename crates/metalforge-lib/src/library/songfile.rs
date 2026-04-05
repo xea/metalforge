@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct SongFile {
     pub title: String,
     pub artist: String,
@@ -8,7 +8,7 @@ pub struct SongFile {
     pub song_path: String
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Copy, Clone)]
 pub enum Format {
     OpenSongChart
 }

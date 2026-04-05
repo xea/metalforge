@@ -131,8 +131,8 @@ mod song_techniques {
     use crate::format::opensongchart::instrument_part::SongNoteTechniques;
 
     pub fn serialize<S>(
-        techniques: &Vec<SongNoteTechniques>,
-        serializer: S,
+        _techniques: &Vec<SongNoteTechniques>,
+        _serializer: S,
     ) -> Result<S::Ok, S::Error>
     where
         S: Serializer,

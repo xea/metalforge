@@ -1,6 +1,7 @@
 use crate::ui::player::song_player::SongPlayer;
 use bevy::prelude::{default, Commands, Component, Query, Res, Text, With};
 use bevy::ui::{px, Node, PositionType};
+use crate::ui::player::OnPlayer;
 
 #[derive(Component)]
 pub struct UILabel;
@@ -14,6 +15,7 @@ pub fn setup_info(mut commands: Commands) {
             right: px(10),
             ..default()
         },
+        OnPlayer,
         UILabel
     ));
 }

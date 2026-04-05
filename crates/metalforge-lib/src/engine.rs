@@ -2,12 +2,12 @@ use std::fs::File;
 use std::path::Path;
 use std::time::Duration;
 use crossbeam_channel::{Receiver, Sender};
-use log::{debug, error};
+use log::{debug, error, info};
 use rodio::{MixerDeviceSink, Player};
 use rodio::decoder::DecoderBuilder;
 use crate::library::Library;
 use crate::library::songfile::SongFile;
-use crate::song::song::Song;
+use crate::song::Song;
 
 /// `Engine` is responsible for handling input and output devices and managing playback.
 pub struct Engine {
@@ -50,6 +50,8 @@ impl Engine {
                 break;
             }
         }
+
+        debug!("Engine loop exited");
     }
 
     fn handle_command(&self, command: &EngineCommand, event_tx: &Sender<EngineEvent>) -> bool {
@@ -66,6 +68,7 @@ impl Engine {
             EngineCommand::Seek(duration) => self.seek(*duration),
             EngineCommand::ChangeSpeed(speed) => self.change_speed(*speed),
             EngineCommand::LoadSong(songfile) => self.load_songfile(songfile), //self.load_song("./examples/sample_song/Sandbox-24bit-44k.ogg"),
+            EngineCommand::UnloadSong => self.unload_song()
         }
         true
     }
@@ -75,6 +78,8 @@ impl Engine {
     }
 
     fn load_song<P: AsRef<Path>>(&self, path: P) {
+        info!("Loading song: {}", path.as_ref().display());
+
         let file = File::open(path)
             .expect("Failed to open OGG file");
 
@@ -90,18 +95,27 @@ impl Engine {
             .build()
             .expect("Failed to create decoder for file");
 
-        // let file_source = Decoder::try_from(file)
-        //     .expect("Failed to decode sound file");
+        info!("Song loaded, appending to player");
 
         self.output_player.clear();
         self.output_player.append(file_source);
     }
 
+    fn unload_song(&self) {
+        self.output_player.pause();
+        self.output_player.clear();
+        if let Err(err) = self.event_tx.send(EngineEvent::SongUnloaded) {
+            error!("Failed to unload song: {}", err);
+        }
+    }
+
     fn pause(&self) {
+        info!("Pausing player");
         self.output_player.pause();
     }
 
     fn resume(&self) {
+        info!("Resuming player");
         if self.output_player.is_paused() {
             self.output_player.play();
         }
@@ -120,7 +134,9 @@ impl Engine {
     }
 
     fn quit(&self) -> bool {
+        info!("Shutting down engine");
         self.output_player.stop();
+        info!("Shutdown engine");
         false
     }
 }
@@ -128,6 +144,7 @@ impl Engine {
 pub enum EngineCommand {
     ScanLibrary(Vec<String>),
     LoadSong(SongFile),
+    UnloadSong,
     Seek(Duration),
     Pause,
     Resume,
@@ -137,7 +154,8 @@ pub enum EngineCommand {
 
 pub enum EngineEvent {
     LibraryUpdated(Library),
-    SongLoaded(Song)
+    SongLoaded(Song),
+    SongUnloaded,
 }
 
 pub struct EngineChannel {

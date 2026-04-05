@@ -5,7 +5,7 @@ use crate::format::opensongchart::keyboard_part::SongKeyboardNotes;
 use crate::format::opensongchart::song::Song;
 use crate::format::opensongchart::vocal_part::{SongVocal, SongVocals};
 use crate::library::songfile::{Format, SongFile};
-use log::{debug, info};
+use log::debug;
 use std::fs::File;
 use std::io::{BufReader, Error};
 use std::path::Path;

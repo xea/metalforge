@@ -1,11 +1,12 @@
 use std::time::{Duration, Instant};
 use bevy::prelude::{Resource, States};
-use metalforge_lib::song::song::Song;
+use metalforge_lib::song::Song;
 
 #[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PlayerState {
     Playing,
     Paused,
+    Menu
 }
 
 #[derive(Resource)]
