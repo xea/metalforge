@@ -52,7 +52,6 @@ pub(crate) fn handle_menu_events(
     mut app_exit_writer: MessageWriter<AppExit>,
     mut menu: ResMut<MenuStructure>,
     engine: Res<UIEngine>,
-    mut app_state: ResMut<NextState<AppState>>,
     mut next_state: ResMut<NextState<MenuState>>,
     library: Res<SongLibrary>
 
@@ -76,7 +75,6 @@ pub(crate) fn handle_menu_events(
             }
             MenuEvent::PlaySong(song_idx) => {
                 info!("Playing song (idx: {})", *song_idx);
-                app_state.set(AppState::Player);
                 if let Some(song_file) = library.0.songs.get(*song_idx) {
                     engine.send(EngineCommand::LoadSong(song_file.clone()))
                 }

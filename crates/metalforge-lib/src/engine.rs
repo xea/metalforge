@@ -67,7 +67,7 @@ impl Engine {
             EngineCommand::Resume => self.resume(),
             EngineCommand::Seek(duration) => self.seek(*duration),
             EngineCommand::ChangeSpeed(speed) => self.change_speed(*speed),
-            EngineCommand::LoadSong(songfile) => self.load_songfile(songfile), //self.load_song("./examples/sample_song/Sandbox-24bit-44k.ogg"),
+            EngineCommand::LoadSong(songfile) => self.load_songfile(songfile),
             EngineCommand::UnloadSong => self.unload_song()
         }
         true
@@ -75,6 +75,9 @@ impl Engine {
 
     fn load_songfile(&self, songfile: &SongFile) {
         self.load_song(songfile.song_path.as_str());
+        if let Err(error) = self.event_tx.send(EngineEvent::SongLoaded(songfile.song.clone())) {
+            error!("Error sending engine event: {}", error);
+        }
     }
 
     fn load_song<P: AsRef<Path>>(&self, path: P) {

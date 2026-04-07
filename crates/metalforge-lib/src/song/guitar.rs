@@ -1,8 +1,9 @@
 use std::time::Duration;
 
+#[derive(Clone)]
 pub struct GuitarTuning {
     /// Represents the number of strings the guitar part was written for and their tunings, expressed
-    /// as the number of semitones from E2. I.e. low E would be 0, A2 would be 5, D2 would be 10, etc.
+    /// as the number of semitones from E2. I.e. low E would be 0, A2 would be 5, D3 would be 10, etc.
     pub string_offsets: Vec<i8>
 }
 
@@ -34,6 +35,7 @@ impl CommonTunings {
     }
 }
 
+#[derive(Clone)]
 pub struct GuitarPart {
     /// The notes and chords to be played during this part
     pub notes: Vec<GuitarNote>,
@@ -43,6 +45,7 @@ pub struct GuitarPart {
     pub capo: u8
 }
 
+#[derive(Clone)]
 pub struct GuitarNote {
     /// The index of the string the note is played on. 0 means the lowest string on the current instrument
     pub string: u8,
@@ -54,40 +57,37 @@ pub struct GuitarNote {
     /// - 2 = middle
     /// - 3 = ring
     /// - 4 = little
-    pub finger: u8,
+    pub finger: Option<u8>,
     /// The amount of time since the start of the song to play this note.
     pub time: Duration,
     /// The duration for which the note should be held
     pub length: Duration,
-    /// The technique that should be used when playing this note
-    pub technique: GuitarTechnique,
-    /// The index of the fret this note should slide to
-    pub slide_to: u8,
+    /// The techniques that should be used when playing this note
+    pub technique: Vec<GuitarTechnique>,
 }
 
+#[derive(Clone)]
 pub enum GuitarTechnique {
-    None,
     HammerOn,
     PullOff,
     PalmMute,
     FretHandMute,
-    Slide,
-    Bend,
+    Slide { to_fret: u8 },
+    Bend { points: Vec<BendPoint> },
     Tremolo,
     Vibrato,
     Harmonic,
     PinchHarmonic,
     Tap,
-    Chord,
-    ChordNote,
-    Continued,
-    Arpeggio,
     // Bass techniques
     Slap,
     Pop,
 }
 
-pub struct Beat {
-    pub time: Duration,
-    pub measure: Option<usize>
+#[derive(Copy, Clone)]
+pub struct BendPoint {
+    // Time offset from the start of the note
+    pub time_offset: Duration,
+    // Directional bend, positive values bend up, negative values bend down
+    pub cents: i16
 }

@@ -42,7 +42,7 @@ pub enum InstrumentType {
 #[derive(Serialize, Deserialize)]
 pub struct StringTuning {
     #[serde(rename = "StringSemitoneOffsets")]
-    string_semitone_offsets: Vec<i16>
+    pub string_semitone_offsets: Vec<i16>
 }
 
 impl StringTuning {

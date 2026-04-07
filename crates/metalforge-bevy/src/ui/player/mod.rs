@@ -1,4 +1,4 @@
-mod song_player;
+pub mod song_player;
 mod event;
 mod cursor;
 mod info;
@@ -23,10 +23,11 @@ use bevy::sprite_render::ColorMaterial;
 use bevy::text::{Justify, TextBounds, TextColor, TextFont, TextLayout};
 use bevy::time::{Fixed, Time};
 use bevy::utils::default;
-use metalforge_lib::song::guitar::GuitarPart;
+use metalforge_lib::song::guitar::{GuitarPart};
 use metalforge_lib::song::instrument_part::InstrumentPartType;
 use metalforge_lib::song::Song;
 use std::time::Duration;
+use log::error;
 
 const SCROLL_SPEED: f32 = 100.0;
 const PIXELS_PER_MILLIS: f32 = SCROLL_SPEED / 1000.0;
@@ -40,11 +41,10 @@ struct OnPlayer;
 pub fn player_plugin(app: &mut App) {
     app
         .insert_state(PlayerState::Paused)
-        .insert_resource(SongPlayer::new(Song::test_song()))
         .insert_resource(CameraPosition::default())
         .insert_resource(ClearColor(Color::srgb(0.06, 0.06, 0.10)))
         .add_systems(OnEnter(AppState::Player), (setup_player, setup_info))
-        .add_systems(OnExit(AppState::Player), despawn_screen::<OnPlayer>)
+        .add_systems(OnExit(AppState::Player), (despawn_screen::<OnPlayer>, cleanup_player))
 
         .add_systems(OnEnter(PlayerState::Menu), (setup_song_menu, display_menu).chain())
         // .add_systems(OnExit(PlayerState::Menu), despawn_screen::<OnMenu>)
@@ -94,10 +94,16 @@ fn setup_player(
     let instrument = song.instrument_parts.first()
         .expect("Instrument part could not be found");
 
-    let part = match &instrument.instrument_type {
+    let part = match &instrument.instrument_part_type {
         InstrumentPartType::LeadGuitar(part) => part,
         InstrumentPartType::RhythmGuitar(part) => part,
         InstrumentPartType::BassGuitar(part) => part,
+        InstrumentPartType::Keyboard |
+        InstrumentPartType::Drums |
+        InstrumentPartType::Vocals => {
+            error!("Non-guitar parts are not supported yet");
+            unimplemented!("Non-guitar parts are not supported yet")
+        }
     };
 
     let num_strings = part.tuning.string_offsets.len();
@@ -111,6 +117,10 @@ fn setup_player(
     create_note_sprites(&mut commands, &assert_server, part);
     create_cursor(&mut commands);
     create_markers(&mut commands, &player);
+}
+
+fn cleanup_player(mut commands: Commands) {
+    commands.remove_resource::<SongPlayer>();
 }
 
 fn create_note_sprites(commands: &mut Commands, asset_server: &Res<AssetServer>, part: &GuitarPart) {
@@ -162,7 +172,7 @@ fn create_beat_lines(commands: &mut Commands, song: &Song, part: &GuitarPart) {
     for beat in &song.beats {
         let x = beat.time.as_millis() as f32 * PIXELS_PER_MILLIS;
 
-        let color = if beat.measure.is_none() {
+        let color = if beat.beat_in_measure != 1 {
             Color::srgba(0.7, 0.7, 0.7, 0.25)
         } else {
             Color::srgba(0.5, 0.5, 0.7, 0.85)
@@ -177,7 +187,7 @@ fn create_beat_lines(commands: &mut Commands, song: &Song, part: &GuitarPart) {
             OnPlayer
         ));
 
-        if beat.measure.is_some() {
+        if beat.beat_in_measure == 1 {
             let mins = beat.time.as_secs() / 60;
             let secs = beat.time.as_secs() % 60;
             let millis = beat.time.subsec_millis();

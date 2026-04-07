@@ -15,6 +15,7 @@ use bevy::utils::default;
 use log::info;
 use metalforge_lib::engine::{EngineCommand, EngineEvent};
 use metalforge_lib::library::Library;
+use crate::ui::player::song_player::SongPlayer;
 
 const KEYSTEP_MILLIS: u32 = 100;
 
@@ -239,6 +240,7 @@ fn refresh_library(mut commands: Commands, engine: Res<UIEngine>) {
 
 fn handle_engine_event(
     engine_channel: Res<UIEngine>,
+    mut commands: Commands,
     mut song_library: ResMut<SongLibrary>,
     mut next_state: ResMut<NextState<MenuState>>,
     mut next_app_state: ResMut<NextState<AppState>>,
@@ -246,7 +248,10 @@ fn handle_engine_event(
 ) {
     while let Some(event) = engine_channel.channel.try_receive() {
         match event {
-            EngineEvent::SongLoaded(_song) => {}
+            EngineEvent::SongLoaded(song) => {
+                commands.insert_resource(SongPlayer::new(song));
+                next_app_state.set(AppState::Player);
+            }
             EngineEvent::LibraryUpdated(library) => {
                 info!("Updating library");
                 song_library.0 = library;
@@ -260,10 +265,10 @@ fn handle_engine_event(
                             action: MenuEvent::Noop,
                         });
                     } else {
-                        for (song_idx, song) in song_library.0.songs.iter().enumerate() {
+                        for (song_idx, song_file) in song_library.0.songs.iter().enumerate() {
                             browser_menu.items.push(
                                 MenuItem {
-                                    label: format!("{} - {}", song.artist, song.title),
+                                    label: format!("{} - {}", song_file.song.metadata.artist, song_file.song.metadata.title),
                                     action: MenuEvent::PlaySong(song_idx),
                                 });
                         }
@@ -276,6 +281,7 @@ fn handle_engine_event(
                 menu.pop_menu();
                 next_state.set(MenuState::SwitchMenu);
                 next_app_state.set(AppState::MainMenu);
+                // commands.remove_resource::<SongPlayer>();
             }
         }
     }

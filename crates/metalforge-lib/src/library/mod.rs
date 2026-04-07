@@ -1,5 +1,5 @@
 use crate::format::load_dir;
-use crate::library::songfile::{Format, SongFile};
+use crate::library::songfile::{SongFile};
 use log::{error, warn};
 use std::io::Error;
 use std::path::{Path};
@@ -29,27 +29,6 @@ impl Library {
             }
         }
 
-        songs.push(SongFile {
-            title: "Test Title 1".to_string(),
-            artist: "Test Artist 1".to_string(),
-            format: Format::OpenSongChart,
-            song_path: "".to_string(),
-        });
-
-        songs.push(SongFile {
-            title: "Test Title 2".to_string(),
-            artist: "Test Artist 2".to_string(),
-            format: Format::OpenSongChart,
-            song_path: "".to_string(),
-        });
-
-        songs.push(SongFile {
-            title: "Test Title 3".to_string(),
-            artist: "Test Artist 3".to_string(),
-            format: Format::OpenSongChart,
-            song_path: "".to_string(),
-        });
-
         Library {
             songs
         }
@@ -75,8 +54,8 @@ pub fn scan_directory<P: AsRef<Path>>(path: P) -> Result<Vec<SongFile>, Error> {
     }
 
     songs.sort_by(|a, b| {
-        let artist_cmd = a.artist.as_str().cmp(b.artist.as_str());
-        let title_cmd = a.title.as_str().cmp(b.title.as_str());
+        let artist_cmd = a.song.metadata.artist.as_str().cmp(b.song.metadata.artist.as_str());
+        let title_cmd = a.song.metadata.title.as_str().cmp(b.song.metadata.title.as_str());
 
         artist_cmd.then(title_cmd)
     });

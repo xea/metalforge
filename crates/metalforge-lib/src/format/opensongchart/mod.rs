@@ -4,7 +4,7 @@ use crate::format::opensongchart::instrument_part::{InstrumentType, SongInstrume
 use crate::format::opensongchart::keyboard_part::SongKeyboardNotes;
 use crate::format::opensongchart::song::Song;
 use crate::format::opensongchart::vocal_part::{SongVocal, SongVocals};
-use crate::library::songfile::{Format, SongFile};
+use crate::library::songfile::SongFile;
 use log::debug;
 use std::fs::File;
 use std::io::{BufReader, Error};
@@ -20,28 +20,36 @@ pub mod drum_part;
 pub trait SongEvent {}
 
 pub struct OpenSongChart {
-    song: Song,
-    arrangement: SongStructure,
-    instrument_parts: Vec<Part>,
-    song_path: String
+    pub song: Song,
+    pub arrangement: SongStructure,
+    pub instrument_parts: Vec<Part>,
+    pub song_path: String
 }
 
 pub enum Part {
-    InstrumentPart(SongInstrumentNotes),
-    KeyboardPart(SongKeyboardNotes),
-    DrumPart(DrumSongNotes),
-    VocalPart(SongVocals)
+    InstrumentPart(String, SongInstrumentNotes),
+    KeyboardPart(String, SongKeyboardNotes),
+    DrumPart(String, DrumSongNotes),
+    VocalPart(String, SongVocals)
+}
+
+impl Part {
+    pub fn has_part_id(&self, id: &str) -> bool {
+        let part_id = match self {
+            Part::InstrumentPart(part_id, _) => part_id.as_str(),
+            Part::KeyboardPart(part_id, _) => part_id.as_str(),
+            Part::DrumPart(part_id, _) => part_id.as_str(),
+            Part::VocalPart(part_id, _) => part_id.as_str(),
+        };
+
+        part_id == id
+    }
 }
 
 pub fn load_open_song_chart<P: AsRef<Path>>(dir: P) -> Result<Option<SongFile>, Error> {
     scan_directory(dir).map(|maybe_chart|
         maybe_chart.map(|chart| {
-            SongFile {
-                title: chart.song.song_name,
-                artist: chart.song.artist_name,
-                format: Format::OpenSongChart,
-                song_path: chart.song_path
-            }
+            SongFile::from(chart)
         })
     )
 }
@@ -79,20 +87,21 @@ pub fn scan_directory<P: AsRef<Path>>(path: P) -> Result<Option<OpenSongChart>, 
 
                     if std::fs::exists(part_path.as_path())? {
                         let part_reader = BufReader::new(File::open(part_path)?);
+                        let part_id = part.instrument_name.clone();
 
                         let part = match part.instrument_type {
                             InstrumentType::LeadGuitar | InstrumentType::RhythmGuitar | InstrumentType::BassGuitar => {
-                                Part::InstrumentPart(serde_json::from_reader(part_reader)?)
+                                Part::InstrumentPart(part_id, serde_json::from_reader(part_reader)?)
                             }
                             InstrumentType::Keys => {
-                                Part::KeyboardPart(serde_json::from_reader(part_reader)?)
+                                Part::KeyboardPart(part_id, serde_json::from_reader(part_reader)?)
                             }
                             InstrumentType::Drums => {
-                                Part::DrumPart(serde_json::from_reader(part_reader)?)
+                                Part::DrumPart(part_id, serde_json::from_reader(part_reader)?)
                             }
                             InstrumentType::Vocals => {
                                 let vocals: Vec<SongVocal> = serde_json::from_reader(part_reader)?;
-                                Part::VocalPart(SongVocals { vocals })
+                                Part::VocalPart(part_id, SongVocals { vocals })
                             }
                         };
 
