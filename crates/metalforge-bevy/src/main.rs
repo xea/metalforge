@@ -32,9 +32,11 @@ fn load_config() -> Result<Config, Error> {
 fn run_gui(config: Config) {
     info!("Initialising application...");
 
-    let (control_tx, _control_rx) = bounded(QUEUE_SIZE);
+    //let (control_tx, _control_rx) = bounded(QUEUE_SIZE);
     let (engine_tx, engine_rx) = bounded(QUEUE_SIZE);
     let (event_tx, event_rx) = bounded(QUEUE_SIZE);
+
+    let control_tx = engine_tx.clone();
 
     let mut ui = UI::new(EngineChannel::new(engine_tx.clone(), event_rx.clone()), config);
 
