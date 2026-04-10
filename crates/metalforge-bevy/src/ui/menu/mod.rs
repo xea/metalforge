@@ -112,9 +112,6 @@ impl Default for MenuStructure {
                 (MenuId::PlayerMenu, Menu {
                     title: "Song Player".to_string(),
                     items: vec![
-                        MenuItem { label: "NOOP".to_string(), action: MenuEvent::Noop },
-                        MenuItem { label: "NOOP".to_string(), action: MenuEvent::Noop },
-                        MenuItem { label: "NOOP".to_string(), action: MenuEvent::Noop },
                         MenuItem { label: "Exit Song".to_string(), action: MenuEvent::ExitSong }
                     ]
                 }),

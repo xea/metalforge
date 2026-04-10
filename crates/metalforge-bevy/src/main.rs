@@ -32,7 +32,6 @@ fn load_config() -> Result<Config, Error> {
 fn run_gui(config: Config) {
     info!("Initialising application...");
 
-    //let (control_tx, _control_rx) = bounded(QUEUE_SIZE);
     let (engine_tx, engine_rx) = bounded(QUEUE_SIZE);
     let (event_tx, event_rx) = bounded(QUEUE_SIZE);
 
