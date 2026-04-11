@@ -2,14 +2,15 @@ pub mod menu;
 pub mod debug;
 pub mod keyboard;
 mod player;
+pub mod event;
 
 use crate::config::Config;
-use crate::ui::menu::MenuStructure;
+use crate::ui::menu::{MenuState, MenuStructure};
 use bevy::app::{App, PluginGroup, Startup, Update};
 use bevy::camera::Camera2d;
 use bevy::image::ImagePlugin;
 use bevy::math::Vec2;
-use bevy::prelude::{AppExtStates, Commands, Component, Entity, MessageReader, Query, ResMut, Resource, States, With};
+use bevy::prelude::{AppExtStates, Commands, Component, Entity, FixedUpdate, MessageReader, Query, ResMut, Resource, States, With};
 use bevy::utils::default;
 use bevy::window::{PrimaryWindow, Window, WindowCloseRequested, WindowPlugin, WindowTheme};
 use bevy::winit::WinitSettings;
@@ -17,6 +18,7 @@ use bevy::DefaultPlugins;
 use bevy_dev_tools::fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin, FrameTimeGraphConfig};
 use log::info;
 use metalforge_lib::engine::{EngineChannel, EngineCommand};
+use crate::ui::event::handle_engine_event;
 
 #[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum AppState {
@@ -75,6 +77,7 @@ impl UI {
             })
             .add_systems(Startup, (update_window_size, create_camera))
             .add_systems(Update, (update_window_size, handle_window_closed))
+            .add_systems(FixedUpdate, handle_engine_event)
             .add_plugins(keyboard::handle_key_input)
             .add_plugins(debug::debug)
             .add_plugins(menu::main_menu)

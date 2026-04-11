@@ -124,18 +124,21 @@ fn seek(engine: &mut ResMut<UIEngine>, player: &mut ResMut<SongPlayer>, location
         SeekLocation::Location(location) => location,
         SeekLocation::RelativeBackward(diff) => player.song_position.checked_sub(diff).unwrap_or(Duration::ZERO),
         SeekLocation::RelativeForward(diff) => player.song_position.add(diff).min(player.song_duration),
-        SeekLocation::NextBeat => player.current_song.beats.iter()
+        SeekLocation::NextBeat => player.current_song.as_ref().unwrap()
+            .beats.iter()
             .find(|beat| beat.time > player.song_position)
             .map(|b| b.time)
             .unwrap_or(player.song_position),
         SeekLocation::PreviousBeat => {
-            let closest_ahead = player.current_song.beats.iter()
+            let song = player.current_song.as_ref().unwrap();
+
+            let closest_ahead = song.beats.iter()
                 .enumerate()
                 .find(|beat| beat.1.time >= player.song_position)
                 .map(|beat| beat.0)
                 .unwrap_or(1);
 
-            player.current_song.beats.get(closest_ahead.max(1) - 1)
+            song.beats.get(closest_ahead.max(1) - 1)
                 .map(|beat| beat.time)
                 .unwrap_or(Duration::ZERO)
         }

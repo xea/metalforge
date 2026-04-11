@@ -2,11 +2,13 @@ pub mod event;
 
 use crate::ui::debug::event::DebugEvent;
 use bevy::color::Color;
-use bevy::prelude::{in_state, percent, px, App, AppExtStates, BorderColor, Commands, Component, Entity, IntoScheduleConfigs, JustifyContent, NextState, On, OnEnter, Query, Res, ResMut, State, States, Text, UiRect, Update, With};
+use bevy::prelude::{in_state, percent, px, App, AppExtStates, BorderColor, Commands, Component, Entity, IntoScheduleConfigs, JustifyContent, NextState, On, OnEnter, Query, Res, ResMut, State, States, Text, Time, UiRect, Update, With};
+use bevy::text::TextFont;
 use bevy::ui::{AlignItems, Node};
 use bevy::utils::default;
 use crate::ui::AppState;
 use crate::ui::menu::{MenuState, MenuStructure};
+use crate::ui::player::song_player::{PlayerState, SongPlayer};
 
 #[derive(Default, States, Copy, Clone, Debug, Hash, Ord, PartialOrd, PartialEq, Eq)]
 pub enum DebugState {
@@ -26,7 +28,7 @@ impl DebugInfo {
 
 pub fn debug(app: &mut App) {
     app
-        .insert_state(DebugState::HideDebug)
+        .insert_state(DebugState::ShowDebug)
         .add_systems(OnEnter(DebugState::ShowDebug), show_debug_info)
         .add_systems(OnEnter(DebugState::HideDebug), hide_debug_info)
         .add_systems(Update, update_debug_info.run_if(in_state(DebugState::ShowDebug)))
@@ -55,10 +57,11 @@ fn show_debug_info(mut commands: Commands) {
                 },
                 BorderColor::all(Color::srgba(1.0, 0.0, 0.0, 0.5)),
             )).with_children(|node_parent| {
-                node_parent.spawn(
-                    (
-                    Text::new("Debug"), DebugInfo)
-                );
+                node_parent.spawn((
+                    Text::new("Debug"),
+                    TextFont::from_font_size(10.0),
+                    DebugInfo
+                ));
             });
         });
 }
@@ -70,18 +73,25 @@ fn hide_debug_info(mut commands: Commands, debug_info: Query<Entity, With<DebugI
 }
 
 fn update_debug_info(
+    time: Res<Time>,
     app_state: Res<State<AppState>>,
     menu_state: Res<State<MenuState>>,
+    player_state: Res<State<PlayerState>>,
     menu_struct: Res<MenuStructure>,
+    song_player: Res<SongPlayer>,
     mut debug_info_q: Query<&mut Text, With<DebugInfo>>
 ) {
     for mut debug_info in &mut debug_info_q {
         debug_info.0.clear();
         debug_info.0.push_str(
-            format!("{:?} {:?} {:?}",
+            format!("{:?} {:?} {:?} {:?} {:?} {:?} {:?}",
+                    time.elapsed(),
+                    menu_struct.menu_stack,
                     app_state.get(),
                     menu_state.get(),
-                    menu_struct.current_menu_id()
+                    player_state.get(),
+                    menu_struct.current_menu_id(),
+                    song_player.current_song.is_some()
             ).as_str());
     }
 }

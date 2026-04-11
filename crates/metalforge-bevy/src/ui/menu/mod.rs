@@ -1,21 +1,21 @@
 pub(crate) mod event;
 
-use std::collections::HashMap;
-use std::time::Instant;
 use crate::ui::menu::event::{handle_menu_events, MenuEvent};
 use crate::ui::{despawn_screen, exit_menu, AppState, UIEngine};
-use bevy::app::{App, FixedUpdate};
+use bevy::app::App;
 use bevy::color::Color;
 use bevy::math::Vec2;
-use bevy::prelude::{in_state, AppExtStates, Commands, Component, IntoScheduleConfigs, NextState, OnEnter, OnExit, Query, Res, ResMut, Resource, States, Text, Transform, Update};
+use bevy::prelude::{in_state, AppExtStates, Commands, Component, IntoScheduleConfigs, OnEnter, OnExit, Query, Res, ResMut, Resource, States, Text, Transform, Update};
 use bevy::sprite::{Sprite, Text2d};
 use bevy::text::TextColor;
 use bevy::ui::{px, Node};
 use bevy::utils::default;
 use log::info;
-use metalforge_lib::engine::{EngineCommand, EngineEvent};
+use metalforge_lib::engine::{EngineCommand};
+use metalforge_lib::library::songfile::SongFile;
 use metalforge_lib::library::Library;
-use crate::ui::player::song_player::SongPlayer;
+use std::collections::HashMap;
+use std::time::Instant;
 
 const KEYSTEP_MILLIS: u32 = 100;
 
@@ -28,7 +28,7 @@ pub(crate) struct OnMenu;
 struct OnLoading;
 
 #[derive(Resource)]
-pub(crate) struct SongLibrary(Library);
+pub(crate) struct SongLibrary(pub(crate) Library);
 
 #[derive(States, Copy, Clone, Hash, Ord, PartialOrd, PartialEq, Eq, Debug)]
 pub(crate) enum MenuState {
@@ -38,8 +38,6 @@ pub(crate) enum MenuState {
     ShowMenu,
     // Menu is hidden
     HideMenu,
-    // This is a virtual, marker state, to allow for state transitions between menus
-    SwitchMenu,
 }
 
 pub fn main_menu(app: &mut App) {
@@ -55,12 +53,7 @@ pub fn main_menu(app: &mut App) {
         .add_systems(OnEnter(MenuState::LoadData), refresh_library)
         .add_systems(OnExit(MenuState::LoadData), despawn_screen::<OnLoading>)
 
-        .add_systems(FixedUpdate, handle_engine_event)
-
-        .add_systems(OnEnter(MenuState::SwitchMenu),
-                     |mut next_state: ResMut<NextState<MenuState>>| next_state.set(MenuState::ShowMenu))
-
-        .add_systems(OnEnter(MenuState::ShowMenu), display_menu)
+        .add_systems(OnEnter(MenuState::ShowMenu), show_menu)
         .add_systems(OnExit(MenuState::ShowMenu), exit_menu::<OnMenu>)
         .add_systems(Update, (handle_menu_events, highlight_selection).chain()
             .run_if(in_state(MenuState::ShowMenu)));
@@ -69,9 +62,9 @@ pub fn main_menu(app: &mut App) {
 #[derive(Resource)]
 pub(crate) struct MenuStructure {
     // Menu definitions
-    menus: HashMap<MenuId, Menu>,
+    pub menus: HashMap<MenuId, Menu>,
     // Which menu is currently selected
-    menu_stack: Vec<(MenuId, usize)>,
+    pub menu_stack: Vec<(MenuId, usize)>,
     // The next selected menu, if there is one
     requested_menu: Option<MenuId>,
 
@@ -95,26 +88,45 @@ impl Default for MenuStructure {
                 (MenuId::MainMenu, Menu {
                     title: "Main Menu".to_string(),
                     items: vec![
-                        MenuItem { label: "Browser".to_string(), action: MenuEvent::PushMenu(MenuId::Browser) },
-                        MenuItem { label: "Settings".to_string(), action: MenuEvent::PushMenu(MenuId::Settings) },
-                        MenuItem { label: "Exit".to_string(), action: MenuEvent::ExitApp }
-                    ]
+                        MenuItem {
+                            label: "Browser".to_string(),
+                            action: MenuEvent::PushMenu(MenuId::Browser),
+                        },
+                        MenuItem {
+                            label: "Settings".to_string(),
+                            action: MenuEvent::PushMenu(MenuId::Settings),
+                        },
+                        MenuItem {
+                            label: "Exit".to_string(),
+                            action: MenuEvent::ExitApp,
+                        }
+                    ],
+                    pop_action: MenuEvent::Noop,
                 }),
                 (MenuId::Settings, Menu {
                     title: "Settings".to_string(),
                     items: vec![
-                        MenuItem { label: "Debug".to_string(), action: MenuEvent::Noop }
-                    ]
+                        MenuItem {
+                            label: "Debug".to_string(),
+                            action: MenuEvent::Noop,
+                        }
+                    ],
+                    pop_action: MenuEvent::PopMenu,
                 }),
                 (MenuId::Browser, Menu {
                     title: "Browser".to_string(),
-                    items: vec![]
+                    items: vec![],
+                    pop_action: MenuEvent::PopMenu,
                 }),
                 (MenuId::PlayerMenu, Menu {
                     title: "Song Player".to_string(),
                     items: vec![
-                        MenuItem { label: "Exit Song".to_string(), action: MenuEvent::ExitSong }
-                    ]
+                        MenuItem {
+                            label: "Exit Song".to_string(),
+                            action: MenuEvent::ExitSong,
+                        }
+                    ],
+                    pop_action: MenuEvent::HideMenu,
                 }),
             ]),
             menu_stack: vec![ (MenuId::MainMenu, 0) ],
@@ -197,7 +209,7 @@ impl MenuStructure {
 #[derive(Component)]
 pub(crate) struct MenuIdx(usize);
 
-pub(crate) fn display_menu(
+pub(crate) fn show_menu(
     mut commands: Commands,
     menu_struct: Res<MenuStructure>,
 ) {
@@ -240,55 +252,6 @@ fn refresh_library(mut commands: Commands, engine: Res<UIEngine>) {
     ));
 }
 
-fn handle_engine_event(
-    engine_channel: Res<UIEngine>,
-    mut commands: Commands,
-    mut song_library: ResMut<SongLibrary>,
-    mut next_state: ResMut<NextState<MenuState>>,
-    mut next_app_state: ResMut<NextState<AppState>>,
-    mut menu: ResMut<MenuStructure>
-) {
-    while let Some(event) = engine_channel.channel.try_receive() {
-        match event {
-            EngineEvent::SongLoaded(song) => {
-                commands.insert_resource(SongPlayer::new(song));
-                next_app_state.set(AppState::Player);
-            }
-            EngineEvent::LibraryUpdated(library) => {
-                info!("Updating library");
-                song_library.0 = library;
-
-                if let Some(browser_menu) = menu.menus.get_mut(&MenuId::Browser) {
-                    browser_menu.items.clear();
-
-                    if song_library.0.songs.is_empty() {
-                        browser_menu.items.push(MenuItem {
-                            label: "[No songs found]".to_string(),
-                            action: MenuEvent::Noop,
-                        });
-                    } else {
-                        for (song_idx, song_file) in song_library.0.songs.iter().enumerate() {
-                            browser_menu.items.push(
-                                MenuItem {
-                                    label: format!("{} - {}", song_file.song.metadata.artist, song_file.song.metadata.title),
-                                    action: MenuEvent::PlaySong(song_idx),
-                                });
-                        }
-                    }
-                }
-
-                next_state.set(MenuState::ShowMenu);
-            }
-            EngineEvent::SongUnloaded => {
-                menu.pop_menu();
-                next_state.set(MenuState::SwitchMenu);
-                next_app_state.set(AppState::MainMenu);
-                // commands.remove_resource::<SongPlayer>();
-            }
-        }
-    }
-}
-
 pub(crate) fn highlight_selection(
     mut menu: ResMut<MenuStructure>,
     mut item_q: Query<(&mut TextColor, &MenuIdx)>
@@ -310,21 +273,49 @@ pub(crate) fn highlight_selection(
     }
 }
 
+pub fn populate_song_browser(browser_menu: &mut Menu, songs: &Vec<SongFile>) {
+    browser_menu.items.clear();
+
+    if songs.is_empty() {
+        reset_songs(browser_menu);
+    } else {
+        for (song_idx, song_file) in songs.iter().enumerate() {
+            browser_menu.items.push(song_to_menu(song_idx, song_file));
+        }
+    }
+}
+
+fn song_to_menu(song_idx: usize, song_file: &SongFile) -> MenuItem {
+    MenuItem {
+        label: format!("{} - {}", song_file.song.metadata.artist, song_file.song.metadata.title),
+        action: MenuEvent::PlaySong(song_idx),
+    }
+}
+
+fn reset_songs(browser_menu: &mut Menu) {
+    browser_menu.items.push(MenuItem {
+        label: "[No songs found]".to_string(),
+        action: MenuEvent::Noop,
+    });
+}
+
 #[derive(Hash, PartialEq, Eq, Copy, Clone, PartialOrd, Ord, Debug)]
 pub enum MenuId {
     MainMenu,
     PlayerMenu,
     Browser,
-    Settings
+    Settings,
 }
 
+#[derive(Debug)]
 pub struct Menu {
     pub title: String,
-    pub items: Vec<MenuItem>
+    pub items: Vec<MenuItem>,
+    pub pop_action: MenuEvent
 }
 
-#[derive(Hash)]
+#[derive(Hash, Debug)]
 pub struct MenuItem {
     pub label: String,
-    pub action: MenuEvent
+    pub action: MenuEvent,
 }

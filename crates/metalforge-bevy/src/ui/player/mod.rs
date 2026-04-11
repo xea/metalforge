@@ -2,13 +2,11 @@ pub mod song_player;
 pub mod event;
 mod cursor;
 mod info;
-mod menu;
 
-use crate::ui::menu::display_menu;
+use crate::ui::menu::show_menu;
 use crate::ui::player::cursor::{Cursor, CursorBundle};
 use crate::ui::player::event::{handle_events, PlayerEvent, SeekLocation};
 use crate::ui::player::info::{setup_info, update_info};
-use crate::ui::player::menu::setup_song_menu;
 use crate::ui::player::song_player::{PlayerState, SongPlayer};
 use crate::ui::{despawn_screen, AppState};
 use bevy::app::{App, FixedUpdate, Update};
@@ -17,7 +15,7 @@ use bevy::camera::{Camera2d, ClearColor, Projection};
 use bevy::color::{Color, Luminance};
 use bevy::math::{Vec2, Vec3};
 use bevy::mesh::Mesh;
-use bevy::prelude::{in_state, AppExtStates, Commands, Component, IntoScheduleConfigs, LineBreak, MessageWriter, OnEnter, OnExit, Query, Res, ResMut, Resource, Sprite, Transform, With, Without};
+use bevy::prelude::{in_state, AppExtStates, Commands, Component, IntoScheduleConfigs, LineBreak, MessageWriter, NextState, OnEnter, OnExit, Query, Res, ResMut, Resource, Sprite, State, Transform, With, Without};
 use bevy::sprite::{BorderRect, SpriteImageMode, Text2d, Text2dShadow, TextureSlicer};
 use bevy::sprite_render::ColorMaterial;
 use bevy::text::{Justify, TextBounds, TextColor, TextFont, TextLayout};
@@ -42,11 +40,12 @@ pub fn player_plugin(app: &mut App) {
     app
         .insert_state(PlayerState::Paused)
         .insert_resource(CameraPosition::default())
+        .insert_resource(SongPlayer::default())
         .insert_resource(ClearColor(Color::srgb(0.06, 0.06, 0.10)))
         .add_systems(OnEnter(AppState::Player), (setup_player, setup_info))
-        .add_systems(OnExit(AppState::Player), (despawn_screen::<OnPlayer>, cleanup_player))
+        .add_systems(OnExit(AppState::Player), despawn_screen::<OnPlayer>)
 
-        .add_systems(OnEnter(PlayerState::Menu), (setup_song_menu, display_menu).chain())
+        .add_systems(OnEnter(PlayerState::Menu), show_menu.chain())
         // .add_systems(OnExit(PlayerState::Menu), despawn_screen::<OnMenu>)
         // .add_systems(Update, (handle_menu_keyboard_events, highlight_selection, handle_menu_events)
         //     .run_if(in_state(PlayerState::Menu)))
@@ -88,9 +87,10 @@ fn setup_player(
     mut _meshes: ResMut<Assets<Mesh>>,
     mut _materials: ResMut<Assets<ColorMaterial>>,
     assert_server: Res<AssetServer>,
-    player: Res<SongPlayer>
+    player: Res<SongPlayer>,
+    mut player_state: ResMut<NextState<PlayerState>>
 ) {
-    let song = &player.current_song;
+    let song = player.current_song.as_ref().expect("No song selected");
     let instrument = song.instrument_parts.first()
         .expect("Instrument part could not be found");
 
@@ -117,10 +117,8 @@ fn setup_player(
     create_note_sprites(&mut commands, &assert_server, part);
     create_cursor(&mut commands);
     create_markers(&mut commands, &player);
-}
 
-fn cleanup_player(mut commands: Commands) {
-    commands.remove_resource::<SongPlayer>();
+    player_state.set(PlayerState::Paused);
 }
 
 fn create_note_sprites(commands: &mut Commands, asset_server: &Res<AssetServer>, part: &GuitarPart) {

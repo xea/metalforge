@@ -1,12 +1,13 @@
 use crate::ui::debug::event::DebugEvent;
 use crate::ui::menu::event::MenuEvent;
-use crate::ui::menu::{MenuState, MenuStructure};
+use crate::ui::menu::{MenuId, MenuState, MenuStructure};
 use crate::ui::player::event::{PlayerEvent, SeekLocation, FINE_SCROLL_DISTANCE_MILLIS, JUMP_DISTANCE_MILLIS, SCROLL_DISTANCE_MILLIS};
 use crate::ui::player::song_player::PlayerState;
 use crate::ui::AppState;
 use bevy::input::ButtonInput;
 use bevy::prelude::{in_state, App, Commands, IntoScheduleConfigs, KeyCode, MessageWriter, NextState, Res, ResMut, State, Update};
 use std::time::Duration;
+use log::{info, trace, warn};
 
 pub fn handle_key_input(app: &mut App) {
     app
@@ -50,19 +51,28 @@ pub(crate) fn handle_menu_keys(
         }
 
     } else if input.just_pressed(KeyCode::Escape) {
-        menu_events.write(MenuEvent::PopMenu);
+        if let Some(menu) = menu.current_menu() {
+            menu_events.write(menu.pop_action);
+        } else {
+            menu_events.write(MenuEvent::PopMenu);
+        }
     }
 }
 
 fn handle_player_keys(
     input: Res<ButtonInput<KeyCode>>,
     player_state: Res<State<PlayerState>>,
+    mut next_menu_state: ResMut<NextState<MenuState>>,
     mut next_player_state: ResMut<NextState<PlayerState>>,
-    mut player_events: MessageWriter<PlayerEvent>
+    mut player_events: MessageWriter<PlayerEvent>,
+    mut menu_events: MessageWriter<MenuEvent>,
+    mut menu_structure: ResMut<MenuStructure>
 ) {
     if player_state.get() == &PlayerState::Menu {
         if input.just_pressed(KeyCode::Escape) {
             // Release menu and resume playing
+            trace!("Release player menu");
+            menu_structure.pop_menu();
             next_player_state.set(PlayerState::Playing)
         }
     } else {
@@ -144,7 +154,11 @@ fn handle_player_keys(
         }
 
         if input.just_pressed(KeyCode::Escape) {
+            trace!("Show player menu");
+            menu_structure.push_menu(MenuId::PlayerMenu);
+            next_menu_state.set(MenuState::ShowMenu);
             next_player_state.set(PlayerState::Menu);
+            menu_events.write(MenuEvent::ShowMenu);
         }
     }
 
