@@ -62,7 +62,10 @@ impl Engine {
 
                 let _ = event_tx.send(EngineEvent::LibraryUpdated(library));
             }
-            EngineCommand::Quit => return self.quit(),
+            EngineCommand::Quit => {
+                info!("Received quit command");
+                return self.quit()
+            },
             EngineCommand::Pause => self.pause(),
             EngineCommand::Resume => self.resume(),
             EngineCommand::Seek(duration) => self.seek(*duration),
@@ -139,7 +142,7 @@ impl Engine {
     fn quit(&self) -> bool {
         info!("Shutting down engine");
         self.output_player.stop();
-        info!("Shutdown engine");
+        info!("Shutdown engine, output player stopped, exiting main loop");
         false
     }
 }

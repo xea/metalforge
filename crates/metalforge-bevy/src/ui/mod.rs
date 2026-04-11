@@ -1,19 +1,22 @@
-mod player;
 pub mod menu;
+pub mod debug;
+pub mod keyboard;
+mod player;
 
 use crate::config::Config;
+use crate::ui::menu::MenuStructure;
 use bevy::app::{App, PluginGroup, Startup, Update};
 use bevy::camera::Camera2d;
 use bevy::image::ImagePlugin;
 use bevy::math::Vec2;
 use bevy::prelude::{AppExtStates, Commands, Component, Entity, MessageReader, Query, ResMut, Resource, States, With};
 use bevy::utils::default;
-use bevy::window::{PrimaryWindow, Window, WindowCloseRequested, WindowPlugin, WindowResized, WindowTheme};
+use bevy::window::{PrimaryWindow, Window, WindowCloseRequested, WindowPlugin, WindowTheme};
 use bevy::winit::WinitSettings;
 use bevy::DefaultPlugins;
 use bevy_dev_tools::fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin, FrameTimeGraphConfig};
+use log::info;
 use metalforge_lib::engine::{EngineChannel, EngineCommand};
-use crate::ui::menu::MenuStructure;
 
 #[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum AppState {
@@ -64,13 +67,16 @@ impl UI {
         app
             .insert_state(AppState::MainMenu)
             .insert_resource(WinitSettings::game())
+            .insert_resource(MenuStructure::default())
             .insert_resource(UIEngine {
                 channel: engine,
                 config,
                 window_size: Vec2::new(0.0, 0.0),
             })
             .add_systems(Startup, (update_window_size, create_camera))
-            .add_systems(Update, (handle_window_resized, handle_window_closed))
+            .add_systems(Update, (update_window_size, handle_window_closed))
+            .add_plugins(keyboard::handle_key_input)
+            .add_plugins(debug::debug)
             .add_plugins(menu::main_menu)
             .add_plugins(player::player_plugin);
 
@@ -119,14 +125,8 @@ fn create_camera(mut commands: Commands) {
 
 fn handle_window_closed(mut window_close_events: MessageReader<WindowCloseRequested>, engine: ResMut<UIEngine>) {
     for _event in window_close_events.read() {
+        info!("Window closed, sending quit event to engine");
         engine.send(EngineCommand::Quit);
-    }
-}
-
-fn handle_window_resized(mut window_resized_events: MessageReader<WindowResized>, mut engine: ResMut<UIEngine>) {
-    for event in window_resized_events.read() {
-        engine.window_size.x = event.width;
-        engine.window_size.y = event.height;
     }
 }
 

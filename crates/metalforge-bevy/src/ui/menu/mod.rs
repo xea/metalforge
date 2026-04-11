@@ -2,7 +2,7 @@ pub(crate) mod event;
 
 use std::collections::HashMap;
 use std::time::Instant;
-use crate::ui::menu::event::{handle_menu_keyboard_events, handle_menu_events, MenuEvent};
+use crate::ui::menu::event::{handle_menu_events, MenuEvent};
 use crate::ui::{despawn_screen, exit_menu, AppState, UIEngine};
 use bevy::app::{App, FixedUpdate};
 use bevy::color::Color;
@@ -34,8 +34,10 @@ pub(crate) struct SongLibrary(Library);
 pub(crate) enum MenuState {
     // Preparation phase, data loading, etc.
     LoadData,
-    // The main menu state
+    // Menu is showing
     ShowMenu,
+    // Menu is hidden
+    HideMenu,
     // This is a virtual, marker state, to allow for state transitions between menus
     SwitchMenu,
 }
@@ -45,7 +47,6 @@ pub fn main_menu(app: &mut App) {
         .add_message::<MenuEvent>()
         .insert_state(MenuState::LoadData)
         .insert_resource(SongLibrary(Library::empty()))
-        .insert_resource(MenuStructure::default())
 
         // Main menu systems
         .add_systems(OnExit(AppState::MainMenu), despawn_screen::<OnMenu>)
@@ -61,7 +62,7 @@ pub fn main_menu(app: &mut App) {
 
         .add_systems(OnEnter(MenuState::ShowMenu), display_menu)
         .add_systems(OnExit(MenuState::ShowMenu), exit_menu::<OnMenu>)
-        .add_systems(Update, (handle_menu_keyboard_events, handle_menu_events, highlight_selection).chain()
+        .add_systems(Update, (handle_menu_events, highlight_selection).chain()
             .run_if(in_state(MenuState::ShowMenu)));
 }
 
@@ -156,6 +157,10 @@ impl MenuStructure {
             self.requested_idx = Some(new_idx);
             self.last_update = now;
         }
+    }
+
+    pub fn current_menu_id(&self) -> Option<MenuId> {
+        self.menu_stack.last().map(|(id, _idx)| *id)
     }
 
     pub fn current_menu(&self) -> Option<&Menu> {
@@ -314,12 +319,12 @@ pub enum MenuId {
 }
 
 pub struct Menu {
-    title: String,
-    items: Vec<MenuItem>
+    pub title: String,
+    pub items: Vec<MenuItem>
 }
 
 #[derive(Hash)]
 pub struct MenuItem {
-    label: String,
-    action: MenuEvent
+    pub label: String,
+    pub action: MenuEvent
 }

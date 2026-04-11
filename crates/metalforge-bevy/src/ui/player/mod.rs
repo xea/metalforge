@@ -1,12 +1,12 @@
 pub mod song_player;
-mod event;
+pub mod event;
 mod cursor;
 mod info;
 mod menu;
 
 use crate::ui::menu::display_menu;
 use crate::ui::player::cursor::{Cursor, CursorBundle};
-use crate::ui::player::event::{handle_events, handle_keyboard, PlayerEvent, SeekLocation};
+use crate::ui::player::event::{handle_events, PlayerEvent, SeekLocation};
 use crate::ui::player::info::{setup_info, update_info};
 use crate::ui::player::menu::setup_song_menu;
 use crate::ui::player::song_player::{PlayerState, SongPlayer};
@@ -23,11 +23,11 @@ use bevy::sprite_render::ColorMaterial;
 use bevy::text::{Justify, TextBounds, TextColor, TextFont, TextLayout};
 use bevy::time::{Fixed, Time};
 use bevy::utils::default;
-use metalforge_lib::song::guitar::{GuitarPart};
+use log::error;
+use metalforge_lib::song::guitar::GuitarPart;
 use metalforge_lib::song::instrument_part::InstrumentPartType;
 use metalforge_lib::song::Song;
 use std::time::Duration;
-use log::error;
 
 const SCROLL_SPEED: f32 = 100.0;
 const PIXELS_PER_MILLIS: f32 = SCROLL_SPEED / 1000.0;
@@ -50,7 +50,7 @@ pub fn player_plugin(app: &mut App) {
         // .add_systems(OnExit(PlayerState::Menu), despawn_screen::<OnMenu>)
         // .add_systems(Update, (handle_menu_keyboard_events, highlight_selection, handle_menu_events)
         //     .run_if(in_state(PlayerState::Menu)))
-        .add_systems(Update, (handle_keyboard, handle_events)
+        .add_systems(Update, handle_events
             .run_if(in_state(AppState::Player)))
         .add_systems(FixedUpdate, (update_position, update_info, update_markers)
             .run_if(in_state(AppState::Player)))
@@ -65,7 +65,7 @@ pub fn player_plugin(app: &mut App) {
 /// This structure is responsible for tracking the camera and translating the player state into camera
 /// coordinates. `current`, `previous`, and `velocity` are used for frame interpolation/extrapolation
 #[derive(Resource)]
-struct CameraPosition {
+pub(crate) struct CameraPosition {
     current: Vec3,
     previous: Vec3,
     velocity: Vec3,

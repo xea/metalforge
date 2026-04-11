@@ -1,8 +1,7 @@
 use crate::ui::player::song_player::{PlayerState, SongPlayer};
 use crate::ui::player::CameraPosition;
 use crate::ui::UIEngine;
-use bevy::input::ButtonInput;
-use bevy::prelude::{KeyCode, Message, MessageReader, MessageWriter, NextState, Res, ResMut, State};
+use bevy::prelude::{Message, MessageReader, NextState, ResMut};
 use metalforge_lib::engine::EngineCommand;
 use std::ops::Add;
 use std::time::Duration;
@@ -15,9 +14,9 @@ const ZOOM_STEP: f32 = 0.05;
 const MIN_ZOOM: f32 = 0.2;
 const MAX_ZOOM: f32 = 5.0;
 
-const FINE_SCROLL_DISTANCE_MILLIS: u64 = 10;
-const SCROLL_DISTANCE_MILLIS: u64 = 250;
-const JUMP_DISTANCE_MILLIS: u64 = 1000;
+pub(crate) const FINE_SCROLL_DISTANCE_MILLIS: u64 = 10;
+pub(crate) const SCROLL_DISTANCE_MILLIS: u64 = 250;
+pub(crate) const JUMP_DISTANCE_MILLIS: u64 = 1000;
 
 #[derive(Copy, Clone)]
 pub enum SeekLocation {
@@ -57,102 +56,7 @@ pub enum PlayerEvent {
     MarkLoopEnd,
 }
 
-pub fn handle_keyboard(
-    input: Res<ButtonInput<KeyCode>>,
-    player_state: Res<State<PlayerState>>,
-    mut next_player_state: ResMut<NextState<PlayerState>>,
-    mut player_events: MessageWriter<PlayerEvent>
-) {
-    if player_state.get() == &PlayerState::Menu {
-        if input.just_pressed(KeyCode::Escape) {
-            // Release menu and resume playing
-            next_player_state.set(PlayerState::Playing)
-        }
-    } else {
-
-        // Handle start/stop/pause/restart events
-        if input.just_pressed(KeyCode::Space) {
-            // Pressing space will start/resume playing from the current position
-            if player_state.get() == &PlayerState::Playing {
-                player_events.write(PlayerEvent::PausePlaying);
-            } else if player_state.get() == &PlayerState::Paused {
-                player_events.write(PlayerEvent::ResumePlaying);
-            }
-        } else if input.just_pressed(KeyCode::KeyR) {
-            // Pressing R resets the player
-            player_events.write(PlayerEvent::StartPlaying);
-        } else if input.just_pressed(KeyCode::ArrowLeft) {
-            if input.any_pressed([KeyCode::ControlLeft, KeyCode::ControlRight, KeyCode::SuperLeft, KeyCode::SuperRight]) {
-                // Snap to nearest beat behind
-                player_events.write(PlayerEvent::Seek(SeekLocation::PreviousBeat));
-            }
-        } else if input.pressed(KeyCode::ArrowLeft) {
-            // Pressing left jumps back in time
-            if input.pressed(KeyCode::ShiftLeft) || input.pressed(KeyCode::ShiftRight) {
-                // Fast scroll backward
-                player_events.write(PlayerEvent::Seek(SeekLocation::RelativeBackward(Duration::from_millis(JUMP_DISTANCE_MILLIS))));
-            } else if input.pressed(KeyCode::AltLeft) || input.pressed(KeyCode::AltRight) {
-                // Fine scroll backward
-                player_events.write(PlayerEvent::Seek(SeekLocation::RelativeBackward(Duration::from_millis(FINE_SCROLL_DISTANCE_MILLIS))));
-            } else if input.any_pressed([KeyCode::ControlLeft, KeyCode::ControlRight, KeyCode::SuperLeft, KeyCode::SuperRight]) {
-                // Ignore, this is handled separately
-
-            } else {
-                // Normal scroll backward
-                player_events.write(PlayerEvent::Seek(SeekLocation::RelativeBackward(Duration::from_millis(SCROLL_DISTANCE_MILLIS))));
-            }
-        } else if input.just_pressed(KeyCode::ArrowRight) {
-            // Snap to nearest beat ahead
-            player_events.write(PlayerEvent::Seek(SeekLocation::NextBeat));
-        } else if input.pressed(KeyCode::ArrowRight) {
-            // Pressing right jumps forward in time
-            if input.pressed(KeyCode::ShiftRight) || input.pressed(KeyCode::ShiftLeft) {
-                // Fast scroll forward
-                player_events.write(PlayerEvent::Seek(SeekLocation::RelativeForward(Duration::from_millis(JUMP_DISTANCE_MILLIS))));
-            } else if input.pressed(KeyCode::AltLeft) || input.pressed(KeyCode::AltRight) {
-                // Fine scroll forward
-                player_events.write(PlayerEvent::Seek(SeekLocation::RelativeForward(Duration::from_millis(FINE_SCROLL_DISTANCE_MILLIS))));
-            } else if input.any_pressed([KeyCode::ControlLeft, KeyCode::ControlRight, KeyCode::SuperLeft, KeyCode::SuperRight]) {
-                // Ignore, this is handled under 'just_pressed'
-
-            } else {
-                // Normal scroll forward
-                player_events.write(PlayerEvent::Seek(SeekLocation::RelativeForward(Duration::from_millis(SCROLL_DISTANCE_MILLIS))));
-            }
-        }
-
-        // Handle speed events
-        if input.just_pressed(KeyCode::ArrowUp) {
-            player_events.write(PlayerEvent::IncreaseSpeed);
-        } else if input.just_pressed(KeyCode::ArrowDown) {
-            player_events.write(PlayerEvent::DecreaseSpeed);
-        } else if input.just_pressed(KeyCode::Slash) {
-            player_events.write(PlayerEvent::ResetSpeed);
-        }
-
-        // Handle zoom events
-        if input.pressed(KeyCode::Equal) {
-            player_events.write(PlayerEvent::ZoomIn);
-        } else if input.pressed(KeyCode::Minus) {
-            player_events.write(PlayerEvent::ZoomOut);
-        } else if input.pressed(KeyCode::Digit0) {
-            player_events.write(PlayerEvent::ResetZoom);
-        }
-
-        // Handle marker events
-        if input.just_pressed(KeyCode::BracketLeft) {
-            player_events.write(PlayerEvent::MarkLoopStart);
-        } else if input.just_pressed(KeyCode::BracketRight) {
-            player_events.write(PlayerEvent::MarkLoopEnd);
-        }
-
-        if input.just_pressed(KeyCode::Escape) {
-            next_player_state.set(PlayerState::Menu);
-        }
-    }
-}
-
-pub fn handle_events(
+pub(crate) fn handle_events(
     mut events: MessageReader<PlayerEvent>,
     mut engine: ResMut<UIEngine>,
     mut player: ResMut<SongPlayer>,

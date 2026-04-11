@@ -42,12 +42,12 @@ fn run_gui(config: Config) {
     let engine_thread = std::thread::spawn(move || {
         let engine = Engine::new(engine_tx, engine_rx, event_tx, event_rx);
         engine.main_loop();
+        info!("Engine thread exited");
     });
 
     ui.run();
 
-    info!("Shutting down...");
-
+    info!("Main thread resumed, sending quit...");
     let _ = control_tx.send(EngineCommand::Quit);
     engine_thread.join().expect("Failed to join engine thread");
 

@@ -1,8 +1,7 @@
 use crate::ui::menu::{MenuId, MenuState, MenuStructure, SongLibrary};
-use crate::ui::{AppState, UIEngine};
+use crate::ui::UIEngine;
 use bevy::app::AppExit;
-use bevy::input::ButtonInput;
-use bevy::prelude::{KeyCode, Message, MessageReader, MessageWriter, NextState, Res, ResMut};
+use bevy::prelude::{Message, MessageReader, MessageWriter, NextState, Res, ResMut};
 use log::info;
 use metalforge_lib::engine::EngineCommand;
 
@@ -18,35 +17,6 @@ pub(crate) enum MenuEvent {
     Noop
 }
 
-pub(crate) fn handle_menu_keyboard_events(
-    input: Res<ButtonInput<KeyCode>>,
-    mut menu_events: MessageWriter<MenuEvent>,
-    menu: Res<MenuStructure>,
-) {
-    if input.just_pressed(KeyCode::ArrowDown) {
-        menu_events.write(MenuEvent::NextItemSelected);
-
-    } else if input.just_pressed(KeyCode::ArrowUp) {
-        menu_events.write(MenuEvent::PrevItemSelected);
-
-    } else if input.pressed(KeyCode::ArrowDown) {
-        // Down key has been pressed for a while
-        menu_events.write(MenuEvent::NextItemSelected);
-
-    } else if input.pressed(KeyCode::ArrowUp) {
-        // Up key has been pressed for a while
-        menu_events.write(MenuEvent::PrevItemSelected);
-
-    } else if input.just_pressed(KeyCode::Enter) {
-        if let Some(item) = menu.current_item() {
-            menu_events.write(item.action);
-        }
-
-    } else if input.just_pressed(KeyCode::Escape) {
-        menu_events.write(MenuEvent::PopMenu);
-    }
-}
-
 pub(crate) fn handle_menu_events(
     mut events: MessageReader<MenuEvent>,
     mut app_exit_writer: MessageWriter<AppExit>,
@@ -54,7 +24,6 @@ pub(crate) fn handle_menu_events(
     engine: Res<UIEngine>,
     mut next_state: ResMut<NextState<MenuState>>,
     library: Res<SongLibrary>
-
 ) {
     for event in events.read() {
         match event {
@@ -81,7 +50,7 @@ pub(crate) fn handle_menu_events(
             }
             MenuEvent::Noop => {},
             MenuEvent::ExitApp => {
-                info!("Exiting application");
+                info!("ExitApp menu event received, quitting engine");
                 app_exit_writer.write(AppExit::Success);
                 engine.send(EngineCommand::Quit);
             }
