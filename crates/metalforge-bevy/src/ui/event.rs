@@ -1,3 +1,4 @@
+use std::time::Duration;
 use crate::ui::menu::{populate_song_browser, MenuId, MenuState, MenuStructure, SongLibrary};
 use crate::ui::player::song_player::SongPlayer;
 use crate::ui::{AppState, UIEngine};
@@ -16,6 +17,10 @@ pub fn handle_engine_event(
     while let Some(event) = engine_channel.channel.try_receive() {
         match event {
             EngineEvent::SongLoaded(song) => {
+                let duration = song.metadata.length;
+                song_player.song_position = Duration::ZERO;
+                song_player.song_duration = duration;
+                song_player.loop_position = duration;
                 song_player.current_song = Some(song);
                 next_app_state.set(AppState::Player);
                 next_menu_state.set(MenuState::HideMenu);

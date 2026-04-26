@@ -110,6 +110,8 @@ fn setup_player(
     let duration = song.metadata.length;
     let track_length_px = duration.as_millis() as f32 * PIXELS_PER_MILLIS;
 
+    println!("Duration: {:?}", duration);
+
     create_background(&mut commands, num_strings, track_length_px);
     create_strings(&mut commands, num_strings, track_length_px);
     create_beat_lines(&mut commands, song, part);
