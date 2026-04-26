@@ -17,11 +17,7 @@ pub fn handle_engine_event(
     while let Some(event) = engine_channel.channel.try_receive() {
         match event {
             EngineEvent::SongLoaded(song) => {
-                let duration = song.metadata.length;
-                song_player.song_position = Duration::ZERO;
-                song_player.song_duration = duration;
-                song_player.loop_position = duration;
-                song_player.current_song = Some(song);
+                song_player.reset(song);
                 next_app_state.set(AppState::Player);
                 next_menu_state.set(MenuState::HideMenu);
             }
@@ -39,6 +35,7 @@ pub fn handle_engine_event(
                 next_menu_state.set(MenuState::ShowMenu);
                 next_app_state.set(AppState::MainMenu);
                 song_player.current_song = None;
+                song_player.playing = false;
                 menu.pop_menu();
             }
         }

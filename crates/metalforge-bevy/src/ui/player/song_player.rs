@@ -42,6 +42,16 @@ impl SongPlayer {
         }
     }
 
+    pub fn reset(&mut self, song: Song) {
+        let length = song.metadata.length;
+        self.current_song = Some(song);
+        self.start_position = Duration::ZERO;
+        self.song_position = Duration::ZERO;
+        self.song_duration = length;
+        self.loop_position = length;
+        self.last_start = Instant::now();
+    }
+
     pub fn playing(&self) -> bool {
         self.playing
     }
